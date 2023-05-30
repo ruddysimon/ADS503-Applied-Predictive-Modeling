@@ -7,15 +7,15 @@ date: "2023-05-30"
 ```{r}
 setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling")   #choose a location/path and set the working directory
 source ("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline/Data_Ingestion.R")
-
+source ("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline/Viz_EDA.R")
 ```
 
 
 
 ```{r}
-####### Data Ingestion #######
 set.seed(007)
-#######  Loading Data #######
+
+# loading Data
 cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
 head(cervical_data_raw,5)
 
@@ -29,6 +29,19 @@ cervical_data_clean <- remove_cols(cervical_data_raw)
 # check missing data
 null_counts <- check_nulls(cervical_data_clean)
 
+
+```
+```{r}
+# check the column distribution- columns[2:9]
+plot_distributions(cervical_data_clean, 2:9)
+```
+```{r}
+columns_median_impute <- c("Number.of.sexual.partners", "First.sexual.intercourse", "Num.of.pregnancies", "Smokes..years.", "Smokes..packs.year.", "Hormonal.Contraceptives..years.	" )
+
+cervical_data_clean1 <- impute_median(cervical_data_clean, columns_median_impute)
+
+# check missing data
+null_counts <- check_nulls(cervical_data_clean1)
 
 ```
 
