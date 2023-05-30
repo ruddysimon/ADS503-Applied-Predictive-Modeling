@@ -4,3 +4,31 @@ output: pdf_document
 date: "2023-05-30"
 ---
 
+```{r}
+setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling")   #choose a location/path and set the working directory
+source ("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline/Data_Ingestion.R")
+
+```
+
+
+
+```{r}
+####### Data Ingestion #######
+set.seed(007)
+#######  Loading Data #######
+cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
+head(cervical_data_raw,5)
+
+
+# check missing data
+null_counts <- check_nulls(cervical_data_raw)
+
+# remove cols with more than 50% missing data
+cervical_data_clean <- remove_cols(cervical_data_raw)
+
+# check missing data
+null_counts <- check_nulls(cervical_data_clean)
+
+
+```
+
