@@ -37,11 +37,13 @@ plot_distributions(cervical_data_clean, 2:9)
 ```
 ```{r}
 columns_median_impute <- c("Number.of.sexual.partners", "First.sexual.intercourse", "Num.of.pregnancies", "Smokes..years.", "Smokes..packs.year.", "Hormonal.Contraceptives..years.	" )
+columns_mode_impute <- c("Smokes", names(cervical_data_clean1)[8:35])
 
-cervical_data_clean1 <- impute_median(cervical_data_clean, columns_median_impute)
+cervical_data_clean1 <- impute_median(cervical_data_clean, columns_median_impute) # impute the columns with median
+cervical_data_clean2 <- impute_mode(cervical_data_clean1, columns_mode_impute) # impute the columns with mode
 
 # check missing data
-null_counts <- check_nulls(cervical_data_clean1)
+null_counts <- check_nulls(cervical_data_clean2)
 
 ```
 

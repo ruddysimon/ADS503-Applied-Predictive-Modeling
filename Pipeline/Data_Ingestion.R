@@ -56,3 +56,20 @@ impute_median <- function(df, columns) {
   }
   return(df)
 }
+
+
+########################################################### Impute missing data with mode for the binary variables
+find_mode <- function(x) {
+  u <- unique(x)
+  tab <- tabulate(match(x, u))
+  u[tab == max(tab)]
+}
+
+
+impute_mode <- function(df, columns) {
+  for (col in columns) {
+    df[[col]][is.na(df[[col]])] <- find_mode(df[[col]])
+  }
+  return(df)
+}
+
