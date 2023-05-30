@@ -1,3 +1,7 @@
+
+library(ggplot2)
+library("Hmisc")
+
 set.seed(007)
 read_data <- function(x) {
   # will read data from input folder
@@ -8,7 +12,7 @@ read_data <- function(x) {
 }
 
 
-                                                                                #### check missing values 
+########################################################### check missing values 
 check_nulls <- function(df) {
   null_counts <- colSums(is.na(df))
   
@@ -20,7 +24,6 @@ check_nulls <- function(df) {
 
   total_percentage_null <- (total_nulls / total_data_points) * 100   # calculate the percentage of missing values in the whole dataset
 
-  # Convert the output to a data frame
   null_counts_df <- data.frame(
     Column = names(null_counts),
     Nulls = as.numeric(null_counts), 
@@ -34,7 +37,7 @@ check_nulls <- function(df) {
 }
 
 
-                                                                                #### remove columns with more than 50% missing data
+########################################################### remove columns with more than 50% missing data
 remove_cols <- function(df, threshold = 60) {
   null_counts_df <- check_nulls(df)
   
@@ -42,5 +45,14 @@ remove_cols <- function(df, threshold = 60) {
   
   df <- df[, !(names(df) %in% cols_to_remove)]
   
+  return(df)
+}
+
+
+########################################################### Impute missing data with median
+impute_median <- function(df, columns) {
+  for (col in columns) {
+    df[[col]][is.na(df[[col]])] <- median(df[[col]], na.rm = TRUE) #ignoring missing values when calculating the median (na.rm = TRUE).
+  }
   return(df)
 }
