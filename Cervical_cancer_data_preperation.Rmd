@@ -1,49 +1,74 @@
 ---
-title: "Cervical_Cancer"
+title: "ADS 503: Cervical Cancer Biopsy Prediction Project"
+author: "Ruddy Simonpour & Shailja Somani"
 output: pdf_document
-date: "2023-05-30"
+date: "May 30, 2023"
 ---
 
-```{r}
-setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling")   #choose a location/path and set the working directory
-source ("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline/Data_Ingestion.R")
-source ("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline/Viz_EDA.R")
+```{r, warning=FALSE}
+setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk thoughh
+source ("Data_Ingestion.R")
+source ("Viz_EDA.R")
+
+# load necessary packages for files above
+library(Hmisc)
+library(dplyr)
 ```
 
 
 
 ```{r}
+# Uses functions from files loaded in to clean data
 set.seed(007)
 
 # loading Data
-cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
+cervical_data_raw <- read_data(x="/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj/kag_risk_factors_cervical_cancer.csv")
 head(cervical_data_raw,5)
 
-
 # check missing data
-null_counts <- check_nulls(cervical_data_raw)
+null_counts_raw <- check_nulls(cervical_data_raw)
 
 # remove cols with more than 50% missing data
 cervical_data_clean <- remove_cols(cervical_data_raw)
 
 # check missing data
-null_counts <- check_nulls(cervical_data_clean)
-
+null_counts_clean <- check_nulls(cervical_data_clean)
 
 ```
+
+
 ```{r}
 # check the column distribution- columns[2:9]
 plot_distributions(cervical_data_clean, 2:9)
 ```
-```{r}
-columns_median_impute <- c("Number.of.sexual.partners", "First.sexual.intercourse", "Num.of.pregnancies", "Smokes..years.", "Smokes..packs.year.", "Hormonal.Contraceptives..years.	" )
-columns_mode_impute <- c("Smokes", names(cervical_data_clean1)[8:35])
 
-cervical_data_clean1 <- impute_median(cervical_data_clean, columns_median_impute) # impute the columns with median
-cervical_data_clean2 <- impute_mode(cervical_data_clean1, columns_mode_impute) # impute the columns with mode
+
+```{r, results='hide'}
+# These user-defined functions are pulled from the Viz_EDA.R file.
+# Look at all histograms of features collectively
+hist.df(cervical_data_clean)
+
+# Create boxplots for all features - helps visualize outliers
+boxplot.df(cervical_data_clean)
+```
+
+
+```{r}
+library(caret)
+
+# Remove near zero variance variables
+dim(cervical_data_clean)
+degeneratecols <- nearZeroVar(cervical_data_clean)
+length(degeneratecols)
+cervical_data_process <- cervical_data_clean[, -degeneratecols]
+dim(cervical_data_process)
+
+# Do KNN imputation, centering, and scaling
+preprocess <- preProcess(cervical_data_process, method = c("knnImpute", "center", "scale"))
+cervical_data_process <- predict(preprocess, cervical_data_process)
 
 # check missing data
-null_counts <- check_nulls(cervical_data_clean2)
+null_counts_process <- check_nulls(cervical_data_process)
 
 ```
 
