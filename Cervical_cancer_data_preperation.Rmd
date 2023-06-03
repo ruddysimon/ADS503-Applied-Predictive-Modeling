@@ -1,0 +1,74 @@
+---
+title: "ADS 503: Cervical Cancer Biopsy Prediction Project"
+author: "Ruddy Simonpour & Shailja Somani"
+output: pdf_document
+date: "May 30, 2023"
+---
+
+```{r, warning=FALSE}
+setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk thoughh
+source ("Data_Ingestion.R")
+source ("Viz_EDA.R")
+
+# load necessary packages for files above
+library(Hmisc)
+library(dplyr)
+```
+
+
+
+```{r}
+# Uses functions from files loaded in to clean data
+set.seed(007)
+
+# loading Data
+cervical_data_raw <- read_data(x="/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj/kag_risk_factors_cervical_cancer.csv")
+head(cervical_data_raw,5)
+
+# check missing data
+null_counts_raw <- check_nulls(cervical_data_raw)
+
+# remove cols with more than 50% missing data
+cervical_data_clean <- remove_cols(cervical_data_raw)
+
+# check missing data
+null_counts_clean <- check_nulls(cervical_data_clean)
+
+```
+
+
+```{r}
+# check the column distribution- columns[2:9]
+plot_distributions(cervical_data_clean, 2:9)
+```
+
+
+```{r, results='hide'}
+# These user-defined functions are pulled from the Viz_EDA.R file.
+# Look at all histograms of features collectively
+hist.df(cervical_data_clean)
+
+# Create boxplots for all features - helps visualize outliers
+boxplot.df(cervical_data_clean)
+```
+
+
+```{r}
+library(caret)
+
+# Remove near zero variance variables
+dim(cervical_data_clean)
+degeneratecols <- nearZeroVar(cervical_data_clean)
+length(degeneratecols)
+cervical_data_process <- cervical_data_clean[, -degeneratecols]
+dim(cervical_data_process)
+
+# Do KNN imputation, centering, and scaling
+preprocess <- preProcess(cervical_data_process, method = c("knnImpute", "center", "scale"))
+cervical_data_process <- predict(preprocess, cervical_data_process)
+
+# check missing data
+null_counts_process <- check_nulls(cervical_data_process)
+
+```
+
