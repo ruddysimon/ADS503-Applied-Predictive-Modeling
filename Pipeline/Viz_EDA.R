@@ -1,7 +1,10 @@
+<<<<<<< HEAD
 # ADS-503 Final Project: Cervical Cancer Biopsy Prediction
 # Authors: Ruddy Simonpour & Shailja Somani
 
 ## distribution of the columns on separate plots
+########################################################### Distribution of the columns
+>>>>>>> 9c1965af21e70ab3f3e03c47e830bc307bf06def
 plot_distributions <- function(df, column_indices) {
   selected_cols <- names(df)[column_indices]
   
@@ -25,4 +28,15 @@ boxplot.df <- function(df) {
   for(i in 1:ncol(df)) {
     boxplot(df[[i]], main=colnames(df)[i], col="gray")
   }
+}
+########################################################### Scatter plot of columns
+
+library(ggplot2)
+create_scatterplot <- function(df, x_var, y_var, color_var, x_label, y_label, title, legend_title) {
+  p <- ggplot(df, aes_string(x = x_var, y = y_var, color = color_var)) + 
+    geom_point(show.legend = TRUE) +
+    labs(x = x_label, y = y_label, title = title, color = legend_title) +
+    scale_color_gradient(low = "green", high = "red", na.value = "blue", guide = "legend") +
+    theme_minimal() + theme(legend.position = "bottom")
+  print(p)
 }

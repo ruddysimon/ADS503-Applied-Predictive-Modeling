@@ -43,6 +43,17 @@ null_counts_clean <- check_nulls(cervical_data_clean)
 
 
 ```{r}
+create_scatterplot(df = cervical_data_clean, x_var = 'Number.of.sexual.partners', 
+                   y_var = 'acceleration', color_var = 'horsepower', 
+                   x_label = 'Mpg', y_label = 'Acceleration', 
+                   title = 'Auto MPG', legend_title = 'Horsepower')
+
+```
+
+
+
+
+```{r}
 # check the column distribution- columns[2:9]
 plot_distributions(cervical_data_clean, 2:9)
 ```
