@@ -16,7 +16,7 @@ library(dplyr)
 ```
 
 ```{r}
-setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling")   #choose a location/path and set the working directory
+setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory
 source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
 ```
@@ -27,7 +27,7 @@ source ("Viz_EDA.R")
 set.seed(007)
 
 # loading Data
-cervical_data_raw <- read_data(x="/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj/kag_risk_factors_cervical_cancer.csv")
+cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
 head(cervical_data_raw,5)
 
 # check missing data
@@ -40,18 +40,6 @@ cervical_data_clean <- remove_cols(cervical_data_raw)
 null_counts_clean <- check_nulls(cervical_data_clean)
 
 ```
-
-
-```{r}
-create_scatterplot(df = cervical_data_clean, x_var = 'Number.of.sexual.partners', 
-                   y_var = 'acceleration', color_var = 'horsepower', 
-                   x_label = 'Mpg', y_label = 'Acceleration', 
-                   title = 'Auto MPG', legend_title = 'Horsepower')
-
-```
-
-
-
 
 ```{r}
 # check the column distribution- columns[2:9]
@@ -75,16 +63,13 @@ library(caret)
 # Remove near zero variance variables
 dim(cervical_data_clean)
 degeneratecols <- nearZeroVar(cervical_data_clean)
-length(degeneratecols)
+
+length(degeneratecols) # number of cols that are degenerate distributions
+
 cervical_data_process <- cervical_data_clean[, -degeneratecols]
 dim(cervical_data_process)
 
-# Do KNN imputation, centering, and scaling
-preprocess <- preProcess(cervical_data_process, method = c("knnImpute", "center", "scale"))
-cervical_data_process <- predict(preprocess, cervical_data_process)
-
-# check missing data
-null_counts_process <- check_nulls(cervical_data_process)
+#
 
 ```
 

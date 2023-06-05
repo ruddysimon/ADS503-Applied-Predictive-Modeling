@@ -1,10 +1,8 @@
-<<<<<<< HEAD
 # ADS-503 Final Project: Cervical Cancer Biopsy Prediction
 # Authors: Ruddy Simonpour & Shailja Somani
 
 ## distribution of the columns on separate plots
 ########################################################### Distribution of the columns
->>>>>>> 9c1965af21e70ab3f3e03c47e830bc307bf06def
 plot_distributions <- function(df, column_indices) {
   selected_cols <- names(df)[column_indices]
   
