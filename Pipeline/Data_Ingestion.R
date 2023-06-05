@@ -49,7 +49,7 @@ remove_cols <- function(df, threshold = 60) {
 }
 
 
-########################################################### Impute missing data with median
+########################################################### impute missing data with median
 impute_median <- function(df, columns) {
   for (col in columns) {
     df[[col]][is.na(df[[col]])] <- median(df[[col]], na.rm = TRUE) #ignoring missing values when calculating the median (na.rm = TRUE).
@@ -58,7 +58,7 @@ impute_median <- function(df, columns) {
 }
 
 
-########################################################### Impute missing data with mode for the binary variables
+########################################################### impute missing data with mode for the binary variables
 find_mode <- function(x) {
   u <- unique(x)
   tab <- tabulate(match(x, u))
@@ -72,4 +72,15 @@ impute_mode <- function(df, columns) {
   }
   return(df)
 }
+
+########################################################### impute missing data using knn imputation
+install.packages("DMwR")
+library(DMwR)
+
+# Function to impute NA values with kNN imputation
+impute_with_knn <- function(df, k = 10) {
+  df_imputed <- knnImputation(df, k = k)  # Perform kNN imputation
+  return(df_imputed)
+}
+
 
