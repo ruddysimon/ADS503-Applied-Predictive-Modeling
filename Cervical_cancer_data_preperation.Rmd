@@ -19,6 +19,8 @@ library(dplyr)
 setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory
 source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
+source ("Preprocessing.R")
+source ("Modeling.R")
 ```
 
 
@@ -30,6 +32,8 @@ set.seed(007)
 cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
 head(cervical_data_raw,5)
 
+dim(cervical_data_raw)
+
 # check missing data
 null_counts_raw <- check_nulls(cervical_data_raw)
 
@@ -39,13 +43,10 @@ cervical_data_clean <- remove_cols(cervical_data_raw)
 # check missing data
 null_counts_clean <- check_nulls(cervical_data_clean)
 
+dim(cervical_data_clean)
 ```
 
-```{r}
-# check the column distribution- columns[2:9]
-plot_distributions(cervical_data_clean, 2:9)
-```
-
+# EDA Analysis 
 
 ```{r, results='hide'}
 # These user-defined functions are pulled from the Viz_EDA.R file.
@@ -55,7 +56,7 @@ hist.df(cervical_data_clean)
 # Create boxplots for all features - helps visualize outliers
 boxplot.df(cervical_data_clean)
 ```
-
+# Data Cleaning
 
 ```{r}
 library(caret)
@@ -69,7 +70,124 @@ length(degeneratecols) # number of cols that are degenerate distributions
 cervical_data_process <- cervical_data_clean[, -degeneratecols]
 dim(cervical_data_process)
 
-#
+# impute missing values with knn
+data_clean <- impute_with_knn(cervical_data_process, k = 10)
 
+# since knn imputation create new columns, we will exclude the new columns from our dataset
+data_clean <- subset(data_clean, select = Age:Biopsy)
+
+null_counts_clean <- check_nulls(data_clean)
+
+data_clean
+```
+# Creating Train and Test Split
+
+```{r}
+# data splitting
+set.seed(100)
+
+trainIndex <- createDataPartition(data_clean$Biopsy, p = .8, list = FALSE)
+trainData <- data_clean[trainIndex, ]
+testData  <- data_clean[-trainIndex, ]
+
+train_X <- trainData[ , !(names(trainData) %in% "Biopsy")]
+train_y <- trainData$Biopsy
+
+test_X <- testData[ , !(names(testData) %in% "Biopsy")]
+test_y <- testData$Biopsy
+
+# target variable is indeed binary and we want to perform a classification task, we would need to convert your target variable to a factor
+train_y = as.factor(train_y)
+test_y = as.factor(test_y)
+
+levels(train_y)
+levels(test_y)
+```
+
+## Data Pre-Processing
+
+```{r}
+preprocessed_data <- preprocess_data(train_X, test_X)
+
+dim(train_X)
+dim(test_X)
+
+cntrl <- trainControl(method = "cv", number = 10)
+```
+
+# Modeling 
+
+## Non-Linear models
+
+### Neural Network Model
+
+```{r}
+### Neural Network Model
+nnet_model <- train_nnet_model(train_X, train_y, ncol(trainData), cntrl)
+nnet_model
+```
+
+
+```{r}
+# get prediction result
+testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
+testResults_nnet
+
+# neural network model result plot
+plot(nnet_model)
+
+nnet_model$finalModel
+```
+
+### Multivariate Adaptive Regression Splines (MARS)
+
+```{r}
+mars_model <- train_mars_model(train_X, train_y, 2:20, cntrl)
+mars_model
+```
+
+```{r}
+# get prediction result
+testResults_mars <- get_prediction_results(mars_model, test_X, test_y)
+testResults_mars
+
+# mars model result plot
+plot(mars_model)
+
+mars_model$finalModel
+```
+### Support Vector Machine (SVM) 
+
+#### svmRadial
+
+```{r}
+svm_model <- train_svm_model(train_X, train_y, 20, cntrl)
+svm_model
+```
+```{r}
+# get prediction result
+testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
+testResults_svm
+
+# svm Radial result plot
+plot(svm_model)
+
+svm_model$finalModel
+```
+#### svmPoly
+
+```{r}
+svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
+svm_modelPoly
+```
+```{r}
+# get prediction result
+testResults_svmP <- get_prediction_results(svm_modelPoly, test_X, test_y)
+testResults_svmP
+
+# svm Poly result plot
+plot(svm_modelPoly)
+
+svm_modelPoly$finalModel
 ```
 

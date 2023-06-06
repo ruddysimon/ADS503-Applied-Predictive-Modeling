@@ -1,10 +1,11 @@
 #install.packages("dplyr")
-install.packages("VIM")
+#install.packages("VIM")
 
 
 library(ggplot2)
 library("Hmisc")
 library(dplyr)
+library(VIM)
 
 
 set.seed(007)
@@ -79,8 +80,6 @@ impute_mode <- function(df, columns) {
 }
 
 ########################################################### impute missing data using knn imputation
-library(VIM)
-
 # Function to impute NA values with kNN imputation
 impute_with_knn <- function(df, k = 6) {
   df_imputed <- kNN(df, k = k)  # Perform kNN imputation
