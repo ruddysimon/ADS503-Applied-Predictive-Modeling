@@ -50,13 +50,34 @@ train_svm_poly <- function(train_X, train_y, cntrl){
   return(svm_model)
 }
 
+####################################################### K-nearest Neighbor (kNN)
 
+knn_model_train <- function(train_X, train_y, k_range) {
+
+  knnGrid <- expand.grid(k = k_range)
+  
+  set.seed(100)
+  
+  knnTune <- train(x = train_X, 
+                   y = train_y, 
+                   method = "knn", 
+                   tuneGrid = knnGrid, 
+                   trControl = cntrl)
+  
+  return(knnTune)
+}
 
 
 # Prediction Results Function
-get_prediction_results <- function(model, test_X, test_y) {
-  prediction <- predict(model, test_X)
-  results <- data.frame(obs = test_y, pred = prediction)
+get_prediction_results<- function(model, test_X, test_y) {
+  prediction <- predict(model, test_X, type = "prob")
+  prediction_class <- ifelse(prediction[,2] > 0.5, "yes", "no") 
+  results <- data.frame(
+    observation = as.factor(test_y), 
+    prediction = as.factor(prediction_class), 
+    class_prob = prediction[,2] 
+  )
   return(results)
 }
+
 

@@ -1,4 +1,4 @@
-library(caret)
+# library(caret)
 
 preprocess_data <- function(train_X, test_X) {
   preProcessData <- preProcess(train_X, method = c("center", "scale"))
