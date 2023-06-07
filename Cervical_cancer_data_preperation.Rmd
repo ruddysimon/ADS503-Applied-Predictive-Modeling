@@ -13,6 +13,8 @@ source ("Viz_EDA.R")
 # load necessary packages for files above
 library(Hmisc)
 library(dplyr)
+library(pROC)
+
 ```
 
 ```{r}
@@ -56,6 +58,7 @@ hist.df(cervical_data_clean)
 # Create boxplots for all features - helps visualize outliers
 boxplot.df(cervical_data_clean)
 ```
+
 # Data Cleaning
 
 ```{r}
@@ -80,6 +83,63 @@ null_counts_clean <- check_nulls(data_clean)
 
 data_clean
 ```
+
+## Imbalaced dataset
+
+```{r}
+# initial look at the target variable
+data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
+levels(data_clean$Biopsy) <- c(0, 1) # names of factors
+summary(data_clean$Biopsy)
+```
+
+```{r}
+# plotting number of samples in each class - original dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+```
+
+### SMOTE 
+
+```{r}
+library(ROSE)
+
+# performing ROSE
+data_clean <- ROSE(Biopsy ~., data = data_clean, seed = 1)$data
+data_clean
+```
+
+```{r}
+# plotting number of samples in each class - original dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+```
+
+
 # Creating Train and Test Split
 
 ```{r}
@@ -99,9 +159,6 @@ test_y <- testData$Biopsy
 # target variable is indeed binary and we want to perform a classification task, we would need to convert your target variable to a factor
 train_y = as.factor(train_y)
 test_y = as.factor(test_y)
-
-levels(train_y)
-levels(test_y)
 ```
 
 ## Data Pre-Processing
@@ -119,6 +176,7 @@ cntrl <- trainControl(method = "cv", number = 10)
 
 ## Non-Linear models
 
+
 ### Neural Network Model
 
 ```{r}
@@ -133,10 +191,19 @@ nnet_model
 testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
 testResults_nnet
 
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_nnet$prediction), as.factor(testResults_nnet$observation))
+print(cm)
+
 # neural network model result plot
 plot(nnet_model)
 
 nnet_model$finalModel
+
+# roc/auc result
+roc_nnet <- roc(testResults_nnet$observation, testResults_nnet$class_prob)
+auc(roc_nnet)
+plot(roc_nnet)
 ```
 
 ### Multivariate Adaptive Regression Splines (MARS)
@@ -151,10 +218,19 @@ mars_model
 testResults_mars <- get_prediction_results(mars_model, test_X, test_y)
 testResults_mars
 
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_mars$prediction), as.factor(testResults_mars$observation))
+print(cm)
+
 # mars model result plot
 plot(mars_model)
 
 mars_model$finalModel
+
+# roc/auc result
+roc_mars <- roc(testResults_mars$observation, testResults_mars$class_prob)
+auc(roc_mars)
+plot(roc_mars)
 ```
 ### Support Vector Machine (SVM) 
 
@@ -164,15 +240,25 @@ mars_model$finalModel
 svm_model <- train_svm_model(train_X, train_y, 20, cntrl)
 svm_model
 ```
+
 ```{r}
 # get prediction result
 testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
 testResults_svm
 
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_svm$prediction), as.factor(testResults_svm$observation))
+print(cm)
+
 # svm Radial result plot
 plot(svm_model)
 
 svm_model$finalModel
+
+# roc/auc result
+roc_svm <- roc(testResults_svm$observation, testResults_svm$class_prob)
+auc(roc_svm)
+plot(roc_svm)
 ```
 #### svmPoly
 
@@ -180,15 +266,26 @@ svm_model$finalModel
 svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
 svm_modelPoly
 ```
+
+
 ```{r}
 # get prediction result
 testResults_svmP <- get_prediction_results(svm_modelPoly, test_X, test_y)
 testResults_svmP
 
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_svmP$prediction), as.factor(testResults_svmP$observation))
+print(cm)
+
 # svm Poly result plot
 plot(svm_modelPoly)
 
 svm_modelPoly$finalModel
+
+# roc/auc result
+roc_svmp <- roc(testResults_svmP$observation, testResults_svmP$class_prob)
+auc(roc_svmp)
+plot(roc_svmp)
 ```
 ### K-Nearest Neighbors
 
@@ -202,16 +299,24 @@ knn_model
 testResults_knn <- get_prediction_results(knn_model, test_X, test_y)
 testResults_knn
 
-# kNN Poly result plot
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_knn$prediction), as.factor(testResults_knn$observation))
+print(cm)
+
+# kNN result plot
 plot(knn_model)
 
 knn_model$finalModel
+
+# roc/auc result
+roc_knn <- roc(testResults_knn$observation, testResults_knn$class_prob)
+auc(roc_knn)
+plot(roc_knn)
 ```
+
 # Judging model benchmark metrics
 
-```{r}
 
-```
 
 
 

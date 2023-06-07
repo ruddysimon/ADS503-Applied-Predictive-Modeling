@@ -28,7 +28,7 @@ train_svm_model <- function (train_X, train_y, tuneLength_range, cntrl) {
   set.seed(100)
   svmRTune <- train(x = train_X, y = train_y,
                     method = "svmRadial",
-                    tuneLength = 14,
+                    tuneLength = tuneLength_range,
                     trControl = cntrl)
   return(svmRTune)
 }
@@ -71,7 +71,7 @@ knn_model_train <- function(train_X, train_y, k_range) {
 # Prediction Results Function
 get_prediction_results<- function(model, test_X, test_y) {
   prediction <- predict(model, test_X, type = "prob")
-  prediction_class <- ifelse(prediction[,2] > 0.5, "yes", "no") 
+  prediction_class <- ifelse(prediction[,2] > 0.5, 1, 0) 
   results <- data.frame(
     observation = as.factor(test_y), 
     prediction = as.factor(prediction_class), 
