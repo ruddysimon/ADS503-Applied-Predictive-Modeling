@@ -5,20 +5,28 @@ output: pdf_document
 date: "May 30, 2023"
 ---
 
-```{r, warning=FALSE}
+
+```{r, warning=FALSE, message='hide'}
 setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
 source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
+source ("Preprocessing.R")
+source ("Modeling.R")
 
 # load necessary packages for files above
 library(Hmisc)
 library(dplyr)
+library(pROC)
+
 ```
 
 ```{r}
-setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling")   #choose a location/path and set the working directory
+setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory
 source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
+source ("Preprocessing.R")
+source ("Modeling.R")
+
 ```
 
 
@@ -30,6 +38,8 @@ set.seed(007)
 cervical_data_raw <- read_data(x="/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj/kag_risk_factors_cervical_cancer.csv")
 head(cervical_data_raw,5)
 
+dim(cervical_data_raw)
+
 # check missing data
 null_counts_raw <- check_nulls(cervical_data_raw)
 
@@ -39,14 +49,10 @@ cervical_data_clean <- remove_cols(cervical_data_raw)
 # check missing data
 null_counts_clean <- check_nulls(cervical_data_clean)
 
+dim(cervical_data_clean)
 ```
 
-
-```{r}
-# check the column distribution- columns[2:9]
-plot_distributions(cervical_data_clean, 2:9)
-```
-
+# EDA Analysis 
 
 ```{r, results='hide'}
 # These user-defined functions are pulled from the Viz_EDA.R file.
@@ -57,6 +63,7 @@ hist.df(cervical_data_clean)
 boxplot.df(cervical_data_clean)
 ```
 
+# Data Cleaning
 
 ```{r}
 library(caret)
@@ -64,16 +71,315 @@ library(caret)
 # Remove near zero variance variables
 dim(cervical_data_clean)
 degeneratecols <- nearZeroVar(cervical_data_clean)
-length(degeneratecols)
+
+length(degeneratecols) # number of cols that are degenerate distributions
+
 cervical_data_process <- cervical_data_clean[, -degeneratecols]
 dim(cervical_data_process)
 
-# Do KNN imputation, centering, and scaling
-preprocess <- preProcess(cervical_data_process, method = c("knnImpute", "center", "scale"))
-cervical_data_process <- predict(preprocess, cervical_data_process)
+# impute missing values with knn
+data_clean <- impute_with_knn(cervical_data_process, k = 10)
 
-# check missing data
-null_counts_process <- check_nulls(cervical_data_process)
+# since knn imputation create new columns, we will exclude the new columns from our dataset
+data_clean <- subset(data_clean, select = Age:Biopsy)
 
+null_counts_clean <- check_nulls(data_clean)
+
+data_clean
 ```
+
+## Imbalaced dataset
+
+```{r}
+# initial look at the target variable
+data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
+levels(data_clean$Biopsy) <- c(0, 1) # names of factors
+summary(data_clean$Biopsy)
+```
+
+```{r}
+# plotting number of samples in each class - original dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+```
+
+### SMOTE 
+
+```{r}
+library(ROSE)
+
+# performing ROSE
+data_clean <- ROSE(Biopsy ~., data = data_clean, seed = 1)$data
+data_clean
+```
+
+```{r}
+# plotting number of samples in each class - balanced dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+```
+
+
+# Creating Train and Test Split
+
+```{r}
+# data splitting
+set.seed(100)
+
+trainIndex <- createDataPartition(data_clean$Biopsy, p = .8, list = FALSE)
+trainData <- data_clean[trainIndex, ]
+testData  <- data_clean[-trainIndex, ]
+
+train_X <- trainData[ , !(names(trainData) %in% "Biopsy")]
+train_y <- trainData$Biopsy
+
+test_X <- testData[ , !(names(testData) %in% "Biopsy")]
+test_y <- testData$Biopsy
+
+# target variable is indeed binary and we want to perform a classification task, we would need to convert your target variable to a factor
+train_y = as.factor(train_y)
+test_y = as.factor(test_y)
+```
+
+## Data Pre-Processing
+
+```{r}
+preprocessed_data <- preprocess_data(train_X, test_X)
+
+dim(train_X)
+dim(test_X)
+
+cntrl <- trainControl(method = "cv", number = 10)
+```
+
+# Modeling 
+
+## Non-Linear models
+
+
+### Neural Network Model
+
+```{r}
+### Neural Network Model
+nnet_model <- train_nnet_model(train_X, train_y, ncol(trainData), cntrl)
+nnet_model
+```
+
+
+```{r}
+# get prediction result
+testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
+testResults_nnet
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_nnet$prediction), as.factor(testResults_nnet$observation))
+print(cm)
+
+# neural network model result plot
+plot(nnet_model)
+
+nnet_model$finalModel
+
+# roc/auc result
+roc_nnet <- roc(testResults_nnet$observation, testResults_nnet$class_prob)
+auc(roc_nnet)
+plot(roc_nnet)
+```
+
+### Multivariate Adaptive Regression Splines (MARS)
+
+```{r}
+mars_model <- train_mars_model(train_X, train_y, 2:20, cntrl)
+mars_model
+```
+
+```{r}
+# get prediction result
+testResults_mars <- get_prediction_results(mars_model, test_X, test_y)
+testResults_mars
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_mars$prediction), as.factor(testResults_mars$observation))
+print(cm)
+
+# mars model result plot
+plot(mars_model)
+
+mars_model$finalModel
+
+# roc/auc result
+roc_mars <- roc(testResults_mars$observation, testResults_mars$class_prob)
+auc(roc_mars)
+plot(roc_mars)
+```
+### Support Vector Machine (SVM) 
+
+#### svmRadial
+
+```{r}
+svm_model <- train_svm_model(train_X, train_y, 20, cntrl)
+svm_model
+```
+
+```{r}
+# get prediction result
+testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
+testResults_svm
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_svm$prediction), as.factor(testResults_svm$observation))
+print(cm)
+
+# svm Radial result plot
+plot(svm_model)
+
+svm_model$finalModel
+
+# roc/auc result
+roc_svm <- roc(testResults_svm$observation, testResults_svm$class_prob)
+auc(roc_svm)
+plot(roc_svm)
+```
+#### svmPoly
+
+```{r}
+svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
+svm_modelPoly
+```
+
+
+```{r}
+# get prediction result
+testResults_svmP <- get_prediction_results(svm_modelPoly, test_X, test_y)
+testResults_svmP
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_svmP$prediction), as.factor(testResults_svmP$observation))
+print(cm)
+
+# svm Poly result plot
+plot(svm_modelPoly)
+
+svm_modelPoly$finalModel
+
+# roc/auc result
+roc_svmp <- roc(testResults_svmP$observation, testResults_svmP$class_prob)
+auc(roc_svmp)
+plot(roc_svmp)
+```
+### K-Nearest Neighbors
+
+```{r}
+knn_model <- knn_model_train(train_X, train_y, cntrl, 1:11)
+knn_model
+```
+
+```{r}
+# get prediction result
+testResults_knn <- get_prediction_results(knn_model, test_X, test_y)
+testResults_knn
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_knn$prediction), as.factor(testResults_knn$observation))
+print(cm)
+
+# kNN result plot
+plot(knn_model)
+
+knn_model$finalModel
+
+# roc/auc result
+roc_knn <- roc(testResults_knn$observation, testResults_knn$class_prob)
+auc(roc_knn)
+plot(roc_knn)
+```
+
+### Random Forest Model
+```{r}
+# Train model
+rf_model <- rf_model_train(train_X, train_y, cntrl)
+rf_model
+```
+
+```{r}
+# Test model
+# get prediction result
+testResults_rf <- get_prediction_results(rf_model, test_X, test_y)
+testResults_rf
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_rf$prediction), as.factor(testResults_rf$observation))
+print(cm)
+
+# RF result plot
+plot(rf_model)
+
+rf_model$finalModel
+
+# roc/auc result
+roc_rf <- roc(testResults_rf$observation, testResults_rf$class_prob)
+auc(roc_rf)
+plot(roc_rf)
+```
+## Linear Models
+
+### Logistic Regression Model
+```{r}
+# build new control
+ctrl <- trainControl(method = "cv",
+                      summaryFunction = twoClassSummary,
+                      classProbs = TRUE,
+                      savePredictions = TRUE)
+
+lr_model <- lr_model_train(train_X, train_y, ctrl)
+lr_model
+```
+
+```{r}
+# Test new model
+# get prediction result
+testResults_lr <- get_prediction_results(lr_model, test_X, test_y)
+testResults_lr
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_lr$prediction), as.factor(testResults_lr$observation))
+print(cm)
+
+# roc/auc result
+roc_rf <- roc(testResults_lr$observation, testResults_lr$class_prob)
+auc(roc_rf)
+plot(roc_rf)
+```
+
+
+# Judging model benchmark metrics
+
+
+
+
+
 
