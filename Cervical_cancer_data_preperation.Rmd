@@ -164,6 +164,11 @@ test_y = as.factor(test_y)
 ## Data Pre-Processing
 
 ```{r}
+preProcValues <- preProcess(train_X, method = c("center", "scale"))
+
+train_X <- predict(preProcValues, train_X)
+test_X <- predict(preProcValues, test_X)
+
 preprocessed_data <- preprocess_data(train_X, test_X)
 
 dim(train_X)
