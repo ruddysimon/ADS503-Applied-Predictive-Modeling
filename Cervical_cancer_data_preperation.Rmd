@@ -5,7 +5,6 @@ output: pdf_document
 date: "May 30, 2023"
 ---
 
-
 ```{r, warning=FALSE, message='hide'}
 setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
 source ("Data_Ingestion.R")
@@ -13,10 +12,14 @@ source ("Viz_EDA.R")
 source ("Preprocessing.R")
 source ("Modeling.R")
 
-# load necessary packages for files above
+# load necessary packages for files above & rest of our code
 library(Hmisc)
 library(dplyr)
 library(pROC)
+library(reshape2)
+library(ggplot2)
+library(caret)
+library(ROSE)
 
 ```
 
@@ -26,7 +29,6 @@ source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
 source ("Preprocessing.R")
 source ("Modeling.R")
-
 ```
 
 
@@ -63,11 +65,10 @@ hist.df(cervical_data_clean)
 boxplot.df(cervical_data_clean)
 ```
 
+
 # Data Cleaning
 
 ```{r}
-library(caret)
-
 # Remove near zero variance variables
 dim(cervical_data_clean)
 degeneratecols <- nearZeroVar(cervical_data_clean)
@@ -86,6 +87,19 @@ data_clean <- subset(data_clean, select = Age:Biopsy)
 null_counts_clean <- check_nulls(data_clean)
 
 data_clean
+```
+
+# #DA - Correlations Analysis
+```{r}
+# convert factor to numeric
+data_clean_num <- data_clean
+data_clean_num$Biopsy <- as.numeric(data_clean_num$Biopsy)
+
+# Feed into our heatmap function
+heatmap <- create_heatmap(data_clean_num)
+
+# Display the heatmap
+print(heatmap)
 ```
 
 ## Imbalaced dataset
@@ -118,8 +132,6 @@ ggplot(data = data_clean, aes(fill = Biopsy)) +
 ### SMOTE 
 
 ```{r}
-library(ROSE)
-
 # performing ROSE
 data_clean <- ROSE(Biopsy ~., data = data_clean, seed = 1)$data
 data_clean
