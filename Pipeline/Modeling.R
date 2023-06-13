@@ -52,7 +52,11 @@ train_svm_poly <- function(train_X, train_y, cntrl){
 
 ####################################################### K-nearest Neighbor (kNN)
 
+
+knn_model_train <- function(train_X, train_y, k_range) {
+
 knn_model_train <- function(train_X, train_y, cntrl, k_range) {
+
 
   knnGrid <- expand.grid(k = k_range)
   
@@ -67,11 +71,20 @@ knn_model_train <- function(train_X, train_y, cntrl, k_range) {
   return(knnTune)
 }
 
+
+############################################################# Random Forest (RF)
+rf_model_train <- function(train_X, train_y, cntrl) {
+  
+  #mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)),
+  #                   ntree = c(100, 200, 300, 400, 500))
+  
+
 ##############################################Random Forest (RF)
 rf_model_train <- function(train_X, train_y, cntrl) {
   
   #mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)),
        #                   ntree = c(100, 200, 300, 400, 500))
+
   mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)))
   
   set.seed(100)
@@ -84,6 +97,17 @@ rf_model_train <- function(train_X, train_y, cntrl) {
   
   return(rfTune)
 }
+
+
+###################################################### Logistic Regression Model
+lr_model_train <- function(train_X, train_y, cntrl) {
+  
+  # Train new model
+  lrFit <- train(x = train_X, 
+                 y = train_y,
+                 method = "glm",
+                 metric = "ROC",
+                 trControl = cntrl)
 
 #################################################Logistic Regression Model
 lr_model_train <- function(train_X, train_y, ctrl) {
@@ -98,11 +122,17 @@ lr_model_train <- function(train_X, train_y, ctrl) {
                  method = "glm",
                  metric = "ROC",
                  trControl = ctrl)
+
   
   return(lrFit)
 }
 
+
+
+# Prediction Results Function
+
 ##########################################Prediction Results Function
+
 get_prediction_results<- function(model, test_X, test_y) {
   prediction <- predict(model, test_X, type = "prob")
   prediction_class <- ifelse(prediction[,2] > 0.5, 1, 0) 
@@ -112,6 +142,14 @@ get_prediction_results<- function(model, test_X, test_y) {
     class_prob = prediction[,2] 
   )
   return(results)
+}
+
+
+# Function to calculate accuracy
+get_accuracy <- function(model, test_X, test_y) {
+  pred <- predict(model, newdata = test_X)
+  acc <- postResample(pred, test_y)["Accuracy"]
+  return(acc)
 }
 
 
