@@ -5,7 +5,18 @@ output: pdf_document
 date: "May 30, 2023"
 ---
 
+
 ```{r, warning=FALSE}
+=======
+
+```{r, warning=FALSE, message='hide'}
+setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
+source ("Data_Ingestion.R")
+source ("Viz_EDA.R")
+source ("Preprocessing.R")
+source ("Modeling.R")
+
+
 # load necessary packages for files above
 library(Hmisc)
 library(dplyr)
@@ -76,6 +87,7 @@ data_clean <- impute_with_knn(cervical_data_process, k = 10)
 data_clean <- subset(data_clean, select = Age:Biopsy)
 
 null_counts_clean <- check_nulls(data_clean)
+
 
 data_clean
 ```
@@ -255,6 +267,173 @@ testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
 
 # convert prediction levels to match observation
 testResults_svm$prediction <- ifelse(testResults_svm$prediction == "1", "Yes", "No")
+=======
+
+data_clean
+```
+
+## Imbalaced dataset
+
+```{r}
+# initial look at the target variable
+data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
+levels(data_clean$Biopsy) <- c(0, 1) # names of factors
+summary(data_clean$Biopsy)
+```
+
+```{r}
+# plotting number of samples in each class - original dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+```
+
+### SMOTE 
+
+```{r}
+library(ROSE)
+
+# performing ROSE
+data_clean <- ROSE(Biopsy ~., data = data_clean, seed = 1)$data
+data_clean
+```
+
+```{r}
+# plotting number of samples in each class - balanced dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+```
+
+
+# Creating Train and Test Split
+
+```{r}
+# data splitting
+set.seed(100)
+
+trainIndex <- createDataPartition(data_clean$Biopsy, p = .8, list = FALSE)
+trainData <- data_clean[trainIndex, ]
+testData  <- data_clean[-trainIndex, ]
+
+train_X <- trainData[ , !(names(trainData) %in% "Biopsy")]
+train_y <- trainData$Biopsy
+
+test_X <- testData[ , !(names(testData) %in% "Biopsy")]
+test_y <- testData$Biopsy
+
+# target variable is indeed binary and we want to perform a classification task, we would need to convert your target variable to a factor
+train_y = as.factor(train_y)
+test_y = as.factor(test_y)
+```
+
+## Data Pre-Processing
+
+```{r}
+preprocessed_data <- preprocess_data(train_X, test_X)
+
+dim(train_X)
+dim(test_X)
+
+cntrl <- trainControl(method = "cv", number = 10)
+```
+
+# Modeling 
+
+## Non-Linear models
+
+
+### Neural Network Model
+
+```{r}
+### Neural Network Model
+nnet_model <- train_nnet_model(train_X, train_y, ncol(trainData), cntrl)
+nnet_model
+```
+
+
+```{r}
+# get prediction result
+testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
+testResults_nnet
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_nnet$prediction), as.factor(testResults_nnet$observation))
+print(cm)
+
+# neural network model result plot
+plot(nnet_model)
+
+nnet_model$finalModel
+
+# roc/auc result
+roc_nnet <- roc(testResults_nnet$observation, testResults_nnet$class_prob)
+auc(roc_nnet)
+plot(roc_nnet)
+```
+
+### Multivariate Adaptive Regression Splines (MARS)
+
+```{r}
+mars_model <- train_mars_model(train_X, train_y, 2:20, cntrl)
+mars_model
+```
+
+```{r}
+# get prediction result
+testResults_mars <- get_prediction_results(mars_model, test_X, test_y)
+testResults_mars
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_mars$prediction), as.factor(testResults_mars$observation))
+print(cm)
+
+# mars model result plot
+plot(mars_model)
+
+mars_model$finalModel
+
+# roc/auc result
+roc_mars <- roc(testResults_mars$observation, testResults_mars$class_prob)
+auc(roc_mars)
+plot(roc_mars)
+```
+### Support Vector Machine (SVM) 
+
+#### svmRadial
+
+```{r}
+svm_model <- train_svm_model(train_X, train_y, 20, cntrl)
+svm_model
+```
+
+```{r}
+# get prediction result
+testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
+testResults_svm
+
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_svm$prediction), as.factor(testResults_svm$observation))
@@ -275,6 +454,10 @@ plot(roc_svm)
 
 ```{r}
 svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
+
+
+svm_modelPoly
+
 ```
 
 
@@ -282,8 +465,12 @@ svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
 # get prediction result
 testResults_svmP <- get_prediction_results(svm_modelPoly, test_X, test_y)
 
+
 # convert prediction levels to match observation
 testResults_svmP$prediction <- ifelse(testResults_svmP$prediction == "1", "Yes", "No")
+
+testResults_svmP
+
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_svmP$prediction), as.factor(testResults_svmP$observation))
@@ -302,15 +489,24 @@ plot(roc_svmp)
 ### K-Nearest Neighbors
 
 ```{r}
+
 knn_model <- knn_model_train(train_X, train_y, 1:11)
+
+knn_model <- knn_model_train(train_X, train_y, cntrl, 1:11)
+knn_model
+
 ```
 
 ```{r}
 # get prediction result
 testResults_knn <- get_prediction_results(knn_model, test_X, test_y)
 
+
 # convert prediction levels to match observation
 testResults_knn$prediction <- ifelse(testResults_knn$prediction == "1", "Yes", "No")
+
+testResults_knn
+
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_knn$prediction), as.factor(testResults_knn$observation))
@@ -331,6 +527,7 @@ plot(roc_knn)
 ```{r}
 # Train model
 rf_model <- rf_model_train(train_X, train_y, cntrl)
+
 ```
 
 ```{r}
@@ -339,6 +536,16 @@ testResults_rf <- get_prediction_results(rf_model, test_X, test_y)
 
 # convert prediction levels to match observation
 testResults_rf$prediction <- ifelse(testResults_rf$prediction == "1", "Yes", "No")
+
+rf_model
+```
+
+```{r}
+# Test model
+# get prediction result
+testResults_rf <- get_prediction_results(rf_model, test_X, test_y)
+testResults_rf
+
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_rf$prediction), as.factor(testResults_rf$observation))
@@ -354,6 +561,7 @@ roc_rf <- roc(testResults_rf$observation, testResults_rf$class_prob)
 auc(roc_rf)
 plot(roc_rf)
 ```
+
 ## Linear Model
 
 ### Logistic Regression
@@ -361,6 +569,18 @@ plot(roc_rf)
 ```{r}
 # build new control
 lr_model <- lr_model_train(train_X, train_y, cntrl)
+## Linear Models
+
+### Logistic Regression Model
+```{r}
+# build new control
+ctrl <- trainControl(method = "cv",
+                      summaryFunction = twoClassSummary,
+                      classProbs = TRUE,
+                      savePredictions = TRUE)
+
+lr_model <- lr_model_train(train_X, train_y, ctrl)
+lr_model
 ```
 
 ```{r}
@@ -368,14 +588,19 @@ lr_model <- lr_model_train(train_X, train_y, cntrl)
 # get prediction result
 testResults_lr <- get_prediction_results(lr_model, test_X, test_y)
 
+
 # convert prediction levels to match observation
 testResults_lr$prediction <- ifelse(testResults_lr$prediction == "1", "Yes", "No")
+
+testResults_lr
+
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_lr$prediction), as.factor(testResults_lr$observation))
 print(cm)
 
 # roc/auc result
+
 roc_lr <- roc(testResults_lr$observation, testResults_lr$class_prob)
 auc(roc_lr)
 plot(roc_lr)
@@ -448,7 +673,8 @@ print(best_model)
 plot(varImp(rf_model, scale = FALSE), top = 10,
      main = "Important Factors for Predicting Cancer using Random Forest")
 
-```
+
+
 
 
 
