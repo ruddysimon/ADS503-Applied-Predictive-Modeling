@@ -6,10 +6,6 @@ date: "May 30, 2023"
 ---
 
 ```{r, warning=FALSE}
-setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
-source ("Data_Ingestion.R")
-source ("Viz_EDA.R")
-
 # load necessary packages for files above
 library(Hmisc)
 library(dplyr)
@@ -89,8 +85,10 @@ data_clean
 ```{r}
 # initial look at the target variable
 data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
-levels(data_clean$Biopsy) <- c(0, 1) # names of factors
+levels(data_clean$Biopsy) <- c("No", "Yes") # names of factors
 summary(data_clean$Biopsy)
+
+data_clean
 ```
 
 ```{r}
@@ -156,31 +154,27 @@ train_y <- trainData$Biopsy
 test_X <- testData[ , !(names(testData) %in% "Biopsy")]
 test_y <- testData$Biopsy
 
-# target variable is indeed binary and we want to perform a classification task, we would need to convert your target variable to a factor
-train_y = as.factor(train_y)
-test_y = as.factor(test_y)
 ```
 
 ## Data Pre-Processing
 
 ```{r}
-preProcValues <- preProcess(train_X, method = c("center", "scale"))
+preProcValues <- preProcess(train_X, 
+                            method = c("center", "scale"))
 
 train_X <- predict(preProcValues, train_X)
 test_X <- predict(preProcValues, test_X)
 
-preprocessed_data <- preprocess_data(train_X, test_X)
 
-dim(train_X)
-dim(test_X)
-
-cntrl <- trainControl(method = "cv", number = 10)
+cntrl <- trainControl(method = "cv", number = 10,
+                     summaryFunction = twoClassSummary,
+                     classProbs = TRUE,
+                     savePredictions = TRUE)
 ```
 
 # Modeling 
 
 ## Non-Linear models
-
 
 ### Neural Network Model
 
@@ -194,6 +188,10 @@ nnet_model
 ```{r}
 # get prediction result
 testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
+
+# convert prediction levels to match observation
+testResults_nnet$prediction <- ifelse(testResults_nnet$prediction == "1", "Yes", "No")
+
 testResults_nnet
 
 # confusion matrix
@@ -209,6 +207,7 @@ nnet_model$finalModel
 roc_nnet <- roc(testResults_nnet$observation, testResults_nnet$class_prob)
 auc(roc_nnet)
 plot(roc_nnet)
+
 ```
 
 ### Multivariate Adaptive Regression Splines (MARS)
@@ -218,10 +217,13 @@ mars_model <- train_mars_model(train_X, train_y, 2:20, cntrl)
 mars_model
 ```
 
+
 ```{r}
 # get prediction result
 testResults_mars <- get_prediction_results(mars_model, test_X, test_y)
-testResults_mars
+
+# convert prediction levels to match observation
+testResults_mars$prediction <- ifelse(testResults_mars$prediction == "1", "Yes", "No")
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_mars$prediction), as.factor(testResults_mars$observation))
@@ -237,6 +239,7 @@ roc_mars <- roc(testResults_mars$observation, testResults_mars$class_prob)
 auc(roc_mars)
 plot(roc_mars)
 ```
+
 ### Support Vector Machine (SVM) 
 
 #### svmRadial
@@ -249,7 +252,9 @@ svm_model
 ```{r}
 # get prediction result
 testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
-testResults_svm
+
+# convert prediction levels to match observation
+testResults_svm$prediction <- ifelse(testResults_svm$prediction == "1", "Yes", "No")
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_svm$prediction), as.factor(testResults_svm$observation))
@@ -265,18 +270,20 @@ roc_svm <- roc(testResults_svm$observation, testResults_svm$class_prob)
 auc(roc_svm)
 plot(roc_svm)
 ```
+
 #### svmPoly
 
 ```{r}
 svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
-svm_modelPoly
 ```
 
 
 ```{r}
 # get prediction result
 testResults_svmP <- get_prediction_results(svm_modelPoly, test_X, test_y)
-testResults_svmP
+
+# convert prediction levels to match observation
+testResults_svmP$prediction <- ifelse(testResults_svmP$prediction == "1", "Yes", "No")
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_svmP$prediction), as.factor(testResults_svmP$observation))
@@ -296,13 +303,14 @@ plot(roc_svmp)
 
 ```{r}
 knn_model <- knn_model_train(train_X, train_y, 1:11)
-knn_model
 ```
 
 ```{r}
 # get prediction result
 testResults_knn <- get_prediction_results(knn_model, test_X, test_y)
-testResults_knn
+
+# convert prediction levels to match observation
+testResults_knn$prediction <- ifelse(testResults_knn$prediction == "1", "Yes", "No")
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_knn$prediction), as.factor(testResults_knn$observation))
@@ -319,7 +327,128 @@ auc(roc_knn)
 plot(roc_knn)
 ```
 
-# Judging model benchmark metrics
+### Random Forest Model
+```{r}
+# Train model
+rf_model <- rf_model_train(train_X, train_y, cntrl)
+```
+
+```{r}
+# get prediction result
+testResults_rf <- get_prediction_results(rf_model, test_X, test_y)
+
+# convert prediction levels to match observation
+testResults_rf$prediction <- ifelse(testResults_rf$prediction == "1", "Yes", "No")
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_rf$prediction), as.factor(testResults_rf$observation))
+print(cm)
+
+# RF result plot
+plot(rf_model)
+
+rf_model$finalModel
+
+# roc/auc result
+roc_rf <- roc(testResults_rf$observation, testResults_rf$class_prob)
+auc(roc_rf)
+plot(roc_rf)
+```
+## Linear Model
+
+### Logistic Regression
+
+```{r}
+# build new control
+lr_model <- lr_model_train(train_X, train_y, cntrl)
+```
+
+```{r}
+# Test new model
+# get prediction result
+testResults_lr <- get_prediction_results(lr_model, test_X, test_y)
+
+# convert prediction levels to match observation
+testResults_lr$prediction <- ifelse(testResults_lr$prediction == "1", "Yes", "No")
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_lr$prediction), as.factor(testResults_lr$observation))
+print(cm)
+
+# roc/auc result
+roc_lr <- roc(testResults_lr$observation, testResults_lr$class_prob)
+auc(roc_lr)
+plot(roc_lr)
+```
+
+
+# Judging model benchmark using ROC curve 
+
+```{r}
+### Compare Models using ROC curve
+
+plot(roc_nnet, type = "s", col = 'red', legacy.axes = TRUE)
+plot(roc_mars, type = "s", add = TRUE, col = 'green', legacy.axes = TRUE)
+plot(roc_svm, type = "s", add = TRUE, col = 'blue', legacy.axes = TRUE)
+plot(roc_svmp, type = "s", add = TRUE, col = 'brown', legacy.axes = TRUE)
+plot(roc_knn, type = "s", add = TRUE, col = 'yellow', legacy.axes = TRUE)
+plot(roc_rf, type = "s", add = TRUE, col = 'orange', legacy.axes = TRUE)
+plot(roc_lr, type = "s", add = TRUE, legacy.axes = TRUE)
+
+
+legend("bottomright", legend=c("Neural Network", "MARS", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)",
+                               "K-Nearest Neighbor", "Random Forest", "Logistic Regression (Linear model)"),
+       
+       col=c("red", "green","blue", "brown", "yellow", "orange", "black" ), lwd=2)
+
+title(main = "Compare ROC curves from different models", outer = TRUE)
+```
+## Model performance based on different metrics ( AUC, Accuracy, Sensitivity[Recall], )
+
+```{r}
+# auc result
+nnetAuc <- auc(roc_nnet)
+marsAuc <- auc(roc_mars)
+svmAuc <- auc(roc_svm)
+svmpAuc <- auc(roc_svmp)
+knnAuc <- auc(roc_knn)
+rfAuc <- auc(roc_rf)
+lrAuc <- auc(roc_lr)
+
+# accuracy result
+nnetAcc <- get_accuracy(nnet_model, test_X, test_y)
+marsAcc <- get_accuracy(mars_model, test_X, test_y)
+svmAcc <- get_accuracy(svm_model, test_X, test_y)
+svmpAcc <- get_accuracy(svm_modelPoly, test_X, test_y)
+knnAcc <- get_accuracy(knn_model, test_X, test_y)
+rfAcc <- get_accuracy(rf_model, test_X, test_y)
+lrAcc <- get_accuracy(lr_model, test_X, test_y)
+
+
+auc_df <- data.frame(
+  Model = c("Neural Network", "MARS", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)",
+                               "K-Nearest Neighbor", "Random Forest", "Logistic Regression"),
+  
+  AUC = c(nnetAuc, marsAuc, svmAuc, svmpAuc, knnAuc, rfAuc, lrAuc), 
+  Accuracy = c(nnetAcc, marsAcc, svmAcc, svmpAcc, knnAcc, rfAcc, lrAcc)
+)
+
+print(auc_df)
+
+# best model based on the AUC curve 
+best_model <- auc_df[which.max(auc_df$AUC), ]
+
+print(best_model)
+
+```
+
+## Checking the important variables of the optimal model 
+
+```{r}
+plot(varImp(rf_model, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cancer using Random Forest")
+
+```
 
 
 

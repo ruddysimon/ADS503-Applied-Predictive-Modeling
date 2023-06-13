@@ -67,6 +67,38 @@ knn_model_train <- function(train_X, train_y, k_range) {
   return(knnTune)
 }
 
+############################################################# Random Forest (RF)
+rf_model_train <- function(train_X, train_y, cntrl) {
+  
+  #mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)),
+  #                   ntree = c(100, 200, 300, 400, 500))
+  
+  mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)))
+  
+  set.seed(100)
+  
+  rfTune <- train(x = train_X, y = train_y,
+                  method = "rf",
+                  tuneGrid = mtryGrid,
+                  importance = TRUE,
+                  trControl = cntrl)
+  
+  return(rfTune)
+}
+
+###################################################### Logistic Regression Model
+lr_model_train <- function(train_X, train_y, cntrl) {
+  
+  # Train new model
+  lrFit <- train(x = train_X, 
+                 y = train_y,
+                 method = "glm",
+                 metric = "ROC",
+                 trControl = cntrl)
+  
+  return(lrFit)
+}
+
 
 # Prediction Results Function
 get_prediction_results<- function(model, test_X, test_y) {
@@ -78,6 +110,13 @@ get_prediction_results<- function(model, test_X, test_y) {
     class_prob = prediction[,2] 
   )
   return(results)
+}
+
+# Function to calculate accuracy
+get_accuracy <- function(model, test_X, test_y) {
+  pred <- predict(model, newdata = test_X)
+  acc <- postResample(pred, test_y)["Accuracy"]
+  return(acc)
 }
 
 
