@@ -60,7 +60,7 @@ boxplot.df(cervical_data_clean)
 ```{r}
 library(caret)
 
-# Remove near zero variance variables
+# remove near zero variance variables
 dim(cervical_data_clean)
 degeneratecols <- nearZeroVar(cervical_data_clean)
 
@@ -76,65 +76,16 @@ data_clean <- impute_with_knn(cervical_data_process, k = 10)
 data_clean <- subset(data_clean, select = Age:Biopsy)
 
 null_counts_clean <- check_nulls(data_clean)
-
 data_clean
 ```
 
-## Imbalaced dataset
+## Convert the class to factor variable
 
 ```{r}
 # initial look at the target variable
 data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
 levels(data_clean$Biopsy) <- c("No", "Yes") # names of factors
-summary(data_clean$Biopsy)
 
-data_clean
-```
-
-```{r}
-# plotting number of samples in each class - original dataset
-options(scipen=10000) 
-
-ggplot(data = data_clean, aes(fill = Biopsy)) +
-    geom_bar(aes(x = Biopsy))+
-    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
-    xlab("")+
-    ylab("Samples")+
-    scale_y_continuous(expand = c(0,0))+
-    scale_x_discrete(expand = c(0,0))+
-    theme(legend.position = "none", 
-         legend.title = element_blank(),
-         panel.grid.major = element_blank(),
-         panel.grid.minor = element_blank(),
-         panel.background = element_blank())
-```
-
-### SMOTE 
-
-```{r}
-library(ROSE)
-
-# performing ROSE
-data_clean <- ROSE(Biopsy ~., data = data_clean, seed = 1)$data
-data_clean
-```
-
-```{r}
-# plotting number of samples in each class - original dataset
-options(scipen=10000) 
-
-ggplot(data = data_clean, aes(fill = Biopsy)) +
-    geom_bar(aes(x = Biopsy))+
-    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
-    xlab("")+
-    ylab("Samples")+
-    scale_y_continuous(expand = c(0,0))+
-    scale_x_discrete(expand = c(0,0))+
-    theme(legend.position = "none", 
-         legend.title = element_blank(),
-         panel.grid.major = element_blank(),
-         panel.grid.minor = element_blank(),
-         panel.background = element_blank())
 ```
 
 
@@ -154,7 +105,74 @@ train_y <- trainData$Biopsy
 test_X <- testData[ , !(names(testData) %in% "Biopsy")]
 test_y <- testData$Biopsy
 
+
+############################################### Imbalance class variable
+
+
+# plotting number of samples in each class - original dataset
+options(scipen=10000)
+
+train_y_df <- data.frame(Biopsy = train_y)
+
+# Create the plot
+p <- ggplot(data = train_y_df, aes(x = Biopsy, fill = Biopsy)) +
+    geom_bar() +
+    geom_text(stat='count', aes(label=..count..), vjust=1) +
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("") +
+    ylab("Samples") +
+    scale_y_continuous(expand = c(0,0)) +
+    scale_x_discrete(expand = c(0,0)) +
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+p 
+ggsave(filename = "class_imbalance1.png", plot = p, width = 7, height = 7)
+
+
+
 ```
+### Class Imbalanace (ROSE)
+
+```{r}
+library(ROSE)
+
+set.seed(100)
+
+rose_train <- ROSE(Biopsy ~ ., data = trainData)$data
+
+train_X <- rose_train[ , !(names(rose_train) %in% "Biopsy")]
+train_y <- rose_train$Biopsy
+
+
+options(scipen=10000) 
+
+train_y_df <- data.frame(Biopsy = train_y)
+
+p1 <- ggplot(data = train_y_df, aes(x = Biopsy,fill = Biopsy)) +
+    geom_bar()+
+    geom_text(stat='count', aes(label=..count..), vjust=1) +
+    ggtitle("Number of samples in each class after ROSE technique implementation", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+p1
+
+ggsave(filename = "class_imbalance2.png", plot = p1, width = 7, height = 4)
+
+```
+
+
+
+
 
 ## Data Pre-Processing
 
@@ -170,6 +188,7 @@ cntrl <- trainControl(method = "cv", number = 10,
                      summaryFunction = twoClassSummary,
                      classProbs = TRUE,
                      savePredictions = TRUE)
+
 ```
 
 # Modeling 
@@ -396,16 +415,16 @@ plot(roc_rf, type = "s", add = TRUE, col = 'orange', legacy.axes = TRUE)
 plot(roc_lr, type = "s", add = TRUE, legacy.axes = TRUE)
 
 
-legend("bottomright", legend=c("Neural Network", "MARS", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)",
-                               "K-Nearest Neighbor", "Random Forest", "Logistic Regression (Linear model)"),
+legend("bottomright", legend=c("Neural Network", "Multivariate Adaptive Regression Splines (MARS)", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)","K-Nearest Neighbor", "Random Forest", "Logistic Regression (Linear model)"),
        
        col=c("red", "green","blue", "brown", "yellow", "orange", "black" ), lwd=2)
 
 title(main = "Compare ROC curves from different models", outer = TRUE)
 ```
-## Model performance based on different metrics ( AUC, Accuracy, Sensitivity[Recall], )
+## Model performance based on different metrics ( AUC, Accuracy, Sensitivity[Recall])
 
 ```{r}
+
 # auc result
 nnetAuc <- auc(roc_nnet)
 marsAuc <- auc(roc_mars)
@@ -414,6 +433,7 @@ svmpAuc <- auc(roc_svmp)
 knnAuc <- auc(roc_knn)
 rfAuc <- auc(roc_rf)
 lrAuc <- auc(roc_lr)
+
 
 # accuracy result
 nnetAcc <- get_accuracy(nnet_model, test_X, test_y)
