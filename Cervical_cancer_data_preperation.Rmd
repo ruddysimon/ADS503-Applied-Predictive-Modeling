@@ -5,17 +5,7 @@ output: pdf_document
 date: "May 30, 2023"
 ---
 
-
-
-
 ```{r, warning=FALSE, message='hide'}
-setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
-source ("Data_Ingestion.R")
-source ("Viz_EDA.R")
-source ("Preprocessing.R")
-source ("Modeling.R")
-
-
 # load necessary packages for files above
 library(Hmisc)
 library(dplyr)
@@ -24,13 +14,19 @@ library(pROC)
 ```
 
 ```{r}
-setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory
+suppressWarnings({
+  
+setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory     (Ruddy/loc/path)
+# setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though     (Shailja/loc/path)source ("Data_Ingestion.R")
 source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
 source ("Preprocessing.R")
 source ("Modeling.R")
+  
+})
 ```
 
+# Data Importing
 
 ```{r}
 # Uses functions from files loaded in to clean data
@@ -65,6 +61,20 @@ hist.df(cervical_data_clean)
 boxplot.df(cervical_data_clean)
 ```
 
+## EDA - Correlations Analysis
+
+```{r}
+# convert factor to numeric
+data_clean_num <- data_clean
+data_clean_num$Biopsy <- as.numeric(data_clean_num$Biopsy)
+
+# Feed into our heatmap function
+heatmap <- create_heatmap(data_clean_num)
+
+# Display the heatmap
+print(heatmap)
+```
+
 # Data Cleaning
 
 ```{r}
@@ -87,7 +97,7 @@ data_clean <- subset(data_clean, select = Age:Biopsy)
 
 null_counts_clean <- check_nulls(data_clean)
 
-data_clean
+
 ```
 
 ## Convert the class to factor variable
@@ -100,7 +110,7 @@ levels(data_clean$Biopsy) <- c("No", "Yes") # names of factors
 ```
 
 
-# Creating Train and Test Split
+# Data Partitioning (Train and Test Split)
 
 ```{r}
 # data splitting
@@ -117,8 +127,7 @@ test_X <- testData[ , !(names(testData) %in% "Biopsy")]
 test_y <- testData$Biopsy
 
 
-############################################### Imbalance class variable
-
+############################################### Imbalance class 
 
 # plotting number of samples in each class - original dataset
 options(scipen=10000)
@@ -142,12 +151,13 @@ p <- ggplot(data = train_y_df, aes(x = Biopsy, fill = Biopsy)) +
 p 
 ggsave(filename = "class_imbalance1.png", plot = p, width = 7, height = 7)
 
-
-
 ```
-### Class Imbalanace (ROSE)
+## Class Imbalanace (ROSE)
 
 ```{r}
+
+#Implementing ROSE function to handle class imbalance problem
+
 library(ROSE)
 
 set.seed(100)
@@ -181,10 +191,6 @@ ggsave(filename = "class_imbalance2.png", plot = p1, width = 7, height = 4)
 
 ```
 
-
-
-
-
 ## Data Pre-Processing
 
 ```{r}
@@ -211,7 +217,6 @@ cntrl <- trainControl(method = "cv", number = 10,
 ```{r}
 ### Neural Network Model
 nnet_model <- train_nnet_model(train_X, train_y, ncol(trainData), cntrl)
-nnet_model
 ```
 
 
@@ -221,8 +226,6 @@ testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
 
 # convert prediction levels to match observation
 testResults_nnet$prediction <- ifelse(testResults_nnet$prediction == "1", "Yes", "No")
-
-testResults_nnet
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_nnet$prediction), as.factor(testResults_nnet$observation))
@@ -286,172 +289,6 @@ testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
 # convert prediction levels to match observation
 testResults_svm$prediction <- ifelse(testResults_svm$prediction == "1", "Yes", "No")
 
-
-```
-
-## Imbalaced dataset
-
-```{r}
-# initial look at the target variable
-data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
-levels(data_clean$Biopsy) <- c(0, 1) # names of factors
-summary(data_clean$Biopsy)
-```
-
-```{r}
-# plotting number of samples in each class - original dataset
-options(scipen=10000) 
-
-ggplot(data = data_clean, aes(fill = Biopsy)) +
-    geom_bar(aes(x = Biopsy))+
-    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
-    xlab("")+
-    ylab("Samples")+
-    scale_y_continuous(expand = c(0,0))+
-    scale_x_discrete(expand = c(0,0))+
-    theme(legend.position = "none", 
-         legend.title = element_blank(),
-         panel.grid.major = element_blank(),
-         panel.grid.minor = element_blank(),
-         panel.background = element_blank())
-```
-
-### SMOTE 
-
-```{r}
-library(ROSE)
-
-# performing ROSE
-data_clean <- ROSE(Biopsy ~., data = data_clean, seed = 1)$data
-data_clean
-```
-
-```{r}
-# plotting number of samples in each class - balanced dataset
-options(scipen=10000) 
-
-ggplot(data = data_clean, aes(fill = Biopsy)) +
-    geom_bar(aes(x = Biopsy))+
-    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
-    xlab("")+
-    ylab("Samples")+
-    scale_y_continuous(expand = c(0,0))+
-    scale_x_discrete(expand = c(0,0))+
-    theme(legend.position = "none", 
-         legend.title = element_blank(),
-         panel.grid.major = element_blank(),
-         panel.grid.minor = element_blank(),
-         panel.background = element_blank())
-```
-
-
-# Creating Train and Test Split
-
-```{r}
-# data splitting
-set.seed(100)
-
-trainIndex <- createDataPartition(data_clean$Biopsy, p = .8, list = FALSE)
-trainData <- data_clean[trainIndex, ]
-testData  <- data_clean[-trainIndex, ]
-
-train_X <- trainData[ , !(names(trainData) %in% "Biopsy")]
-train_y <- trainData$Biopsy
-
-test_X <- testData[ , !(names(testData) %in% "Biopsy")]
-test_y <- testData$Biopsy
-
-# target variable is indeed binary and we want to perform a classification task, we would need to convert your target variable to a factor
-train_y = as.factor(train_y)
-test_y = as.factor(test_y)
-```
-
-## Data Pre-Processing
-
-```{r}
-preprocessed_data <- preprocess_data(train_X, test_X)
-
-dim(train_X)
-dim(test_X)
-
-cntrl <- trainControl(method = "cv", number = 10)
-```
-
-# Modeling 
-
-## Non-Linear models
-
-
-### Neural Network Model
-
-```{r}
-### Neural Network Model
-nnet_model <- train_nnet_model(train_X, train_y, ncol(trainData), cntrl)
-nnet_model
-```
-
-
-```{r}
-# get prediction result
-testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
-testResults_nnet
-
-# confusion matrix
-cm <- confusionMatrix(as.factor(testResults_nnet$prediction), as.factor(testResults_nnet$observation))
-print(cm)
-
-# neural network model result plot
-plot(nnet_model)
-
-nnet_model$finalModel
-
-# roc/auc result
-roc_nnet <- roc(testResults_nnet$observation, testResults_nnet$class_prob)
-auc(roc_nnet)
-plot(roc_nnet)
-```
-
-### Multivariate Adaptive Regression Splines (MARS)
-
-```{r}
-mars_model <- train_mars_model(train_X, train_y, 2:20, cntrl)
-mars_model
-```
-
-```{r}
-# get prediction result
-testResults_mars <- get_prediction_results(mars_model, test_X, test_y)
-testResults_mars
-
-# confusion matrix
-cm <- confusionMatrix(as.factor(testResults_mars$prediction), as.factor(testResults_mars$observation))
-print(cm)
-
-# mars model result plot
-plot(mars_model)
-
-mars_model$finalModel
-
-# roc/auc result
-roc_mars <- roc(testResults_mars$observation, testResults_mars$class_prob)
-auc(roc_mars)
-plot(roc_mars)
-```
-### Support Vector Machine (SVM) 
-
-#### svmRadial
-
-```{r}
-svm_model <- train_svm_model(train_X, train_y, 20, cntrl)
-svm_model
-```
-
-```{r}
-# get prediction result
-testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
-testResults_svm
-
-
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_svm$prediction), as.factor(testResults_svm$observation))
 print(cm)
@@ -465,16 +302,14 @@ svm_model$finalModel
 roc_svm <- roc(testResults_svm$observation, testResults_svm$class_prob)
 auc(roc_svm)
 plot(roc_svm)
+
 ```
 
 #### svmPoly
 
 ```{r}
 svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
-
-
 svm_modelPoly
-
 ```
 
 
@@ -506,9 +341,6 @@ plot(roc_svmp)
 ### K-Nearest Neighbors
 
 ```{r}
-
-knn_model <- knn_model_train(train_X, train_y, 1:11)
-
 knn_model <- knn_model_train(train_X, train_y, cntrl, 1:11)
 knn_model
 
@@ -541,28 +373,21 @@ plot(roc_knn)
 ```
 
 ### Random Forest Model
+
 ```{r}
 # Train model
 rf_model <- rf_model_train(train_X, train_y, cntrl)
 
 ```
 
-```{r}
-# get prediction result
-testResults_rf <- get_prediction_results(rf_model, test_X, test_y)
-
-# convert prediction levels to match observation
-testResults_rf$prediction <- ifelse(testResults_rf$prediction == "1", "Yes", "No")
-
-rf_model
-```
 
 ```{r}
-# Test model
 # get prediction result
 testResults_rf <- get_prediction_results(rf_model, test_X, test_y)
 testResults_rf
 
+# convert prediction levels to match observation
+testResults_rf$prediction <- ifelse(testResults_rf$prediction == "1", "Yes", "No")
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_rf$prediction), as.factor(testResults_rf$observation))
@@ -584,31 +409,17 @@ plot(roc_rf)
 ### Logistic Regression
 
 ```{r}
-# build new control
 lr_model <- lr_model_train(train_X, train_y, cntrl)
-## Linear Models
-
-### Logistic Regression Model
-
-# build new control
-ctrl <- trainControl(method = "cv",
-                      summaryFunction = twoClassSummary,
-                      classProbs = TRUE,
-                      savePredictions = TRUE)
-
-lr_model <- lr_model_train(train_X, train_y, ctrl)
 lr_model
 ```
 
 ```{r}
-# Test new model
 # get prediction result
 testResults_lr <- get_prediction_results(lr_model, test_X, test_y)
 
 
 # convert prediction levels to match observation
 testResults_lr$prediction <- ifelse(testResults_lr$prediction == "1", "Yes", "No")
-
 testResults_lr
 
 
@@ -628,6 +439,8 @@ plot(roc_lr)
 
 ```{r}
 ### Compare Models using ROC curve
+par(mar = c(9, 1, 0, 9))
+
 
 plot(roc_nnet, type = "s", col = 'red', legacy.axes = TRUE)
 plot(roc_mars, type = "s", add = TRUE, col = 'green', legacy.axes = TRUE)
@@ -644,6 +457,7 @@ legend("bottomright", legend=c("Neural Network", "Multivariate Adaptive Regressi
 
 title(main = "Compare ROC curves from different models", outer = TRUE)
 ```
+
 ## Model performance based on different metrics ( AUC, Accuracy, Sensitivity[Recall])
 
 ```{r}
@@ -686,4 +500,10 @@ print(best_model)
 ```
 
 ## Checking the important variables of the optimal model 
+
+```{r}
+plot(varImp(rf_model, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cancer using Random Forest")
+
+```
 

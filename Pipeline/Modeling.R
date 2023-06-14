@@ -51,10 +51,6 @@ train_svm_poly <- function(train_X, train_y, cntrl){
 }
 
 ####################################################### K-nearest Neighbor (kNN)
-
-
-knn_model_train <- function(train_X, train_y, k_range) {
-
 knn_model_train <- function(train_X, train_y, cntrl, k_range) {
 
 
@@ -70,14 +66,6 @@ knn_model_train <- function(train_X, train_y, cntrl, k_range) {
   
   return(knnTune)
 }
-
-
-############################################################# Random Forest (RF)
-rf_model_train <- function(train_X, train_y, cntrl) {
-  
-  #mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)),
-  #                   ntree = c(100, 200, 300, 400, 500))
-  
 
 ##############################################Random Forest (RF)
 rf_model_train <- function(train_X, train_y, cntrl) {
@@ -98,9 +86,9 @@ rf_model_train <- function(train_X, train_y, cntrl) {
   return(rfTune)
 }
 
-
-###################################################### Logistic Regression Model
+#################################################Logistic Regression Model
 lr_model_train <- function(train_X, train_y, cntrl) {
+  
   
   # Train new model
   lrFit <- train(x = train_X, 
@@ -108,20 +96,6 @@ lr_model_train <- function(train_X, train_y, cntrl) {
                  method = "glm",
                  metric = "ROC",
                  trControl = cntrl)
-
-#################################################Logistic Regression Model
-lr_model_train <- function(train_X, train_y, ctrl) {
-  
-  # rename factor levels for new control
-  train_y_renam <- train_y
-  levels(train_y_renam) <- c("level0", "level1")
-  
-  # Train new model
-  lrFit <- train(x = train_X, 
-                 y = train_y_renam,
-                 method = "glm",
-                 metric = "ROC",
-                 trControl = ctrl)
 
   
   return(lrFit)
