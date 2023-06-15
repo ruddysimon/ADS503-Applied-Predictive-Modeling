@@ -43,6 +43,8 @@ create_scatterplot <- function(df, x_var, y_var, color_var, x_label, y_label, ti
 }
 
 
+
+
 ########################################################## Heatmap of correlations
 
 create_heatmap <- function(data_clean_num) {
@@ -59,3 +61,5 @@ create_heatmap <- function(data_clean_num) {
   
   return(heatmap)
 }
+
+

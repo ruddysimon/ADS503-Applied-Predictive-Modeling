@@ -6,10 +6,21 @@ date: "May 30, 2023"
 ---
 
 ```{r, warning=FALSE, message='hide'}
-# load necessary packages for files above
+setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
+source ("Data_Ingestion.R")
+source ("Viz_EDA.R")
+source ("Preprocessing.R")
+source ("Modeling.R")
+
+# load necessary packages for files above & rest of our code
+
 library(Hmisc)
 library(dplyr)
 library(pROC)
+library(reshape2)
+library(ggplot2)
+library(caret)
+library(ROSE)
 
 ```
 
@@ -24,7 +35,7 @@ source ("Preprocessing.R")
 source ("Modeling.R")
   
 })
-```
+
 
 # Data Importing
 
@@ -61,6 +72,7 @@ hist.df(cervical_data_clean)
 boxplot.df(cervical_data_clean)
 ```
 
+
 ## EDA - Correlations Analysis
 
 ```{r}
@@ -75,12 +87,14 @@ heatmap <- create_heatmap(data_clean_num)
 print(heatmap)
 ```
 
+
 # Data Cleaning
 
 ```{r}
 library(caret)
 
 # remove near zero variance variables
+
 dim(cervical_data_clean)
 degeneratecols <- nearZeroVar(cervical_data_clean)
 
@@ -100,7 +114,9 @@ null_counts_clean <- check_nulls(data_clean)
 
 ```
 
+
 ## Convert the class to factor variable
+
 
 ```{r}
 # initial look at the target variable
@@ -156,6 +172,7 @@ ggsave(filename = "class_imbalance1.png", plot = p, width = 7, height = 7)
 
 ```{r}
 
+
 #Implementing ROSE function to handle class imbalance problem
 
 library(ROSE)
@@ -166,6 +183,7 @@ rose_train <- ROSE(Biopsy ~ ., data = trainData)$data
 
 train_X <- rose_train[ , !(names(rose_train) %in% "Biopsy")]
 train_y <- rose_train$Biopsy
+
 
 
 options(scipen=10000) 
