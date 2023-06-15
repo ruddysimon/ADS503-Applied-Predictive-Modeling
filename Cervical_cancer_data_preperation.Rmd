@@ -13,7 +13,6 @@ source ("Preprocessing.R")
 source ("Modeling.R")
 
 # load necessary packages for files above & rest of our code
-
 library(Hmisc)
 library(dplyr)
 library(pROC)
@@ -21,30 +20,24 @@ library(reshape2)
 library(ggplot2)
 library(caret)
 library(ROSE)
-
+library(pamr)
 ```
 
 ```{r}
-suppressWarnings({
-  
-setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory     (Ruddy/loc/path)
-# setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though     (Shailja/loc/path)source ("Data_Ingestion.R")
+setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory
 source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
 source ("Preprocessing.R")
 source ("Modeling.R")
-  
-})
+```
 
-
-# Data Importing
 
 ```{r}
 # Uses functions from files loaded in to clean data
 set.seed(007)
 
 # loading Data
-cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
+cervical_data_raw <- read_data(x="/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj/kag_risk_factors_cervical_cancer.csv")
 head(cervical_data_raw,5)
 
 dim(cervical_data_raw)
@@ -73,28 +66,10 @@ boxplot.df(cervical_data_clean)
 ```
 
 
-## EDA - Correlations Analysis
-
-```{r}
-# convert factor to numeric
-data_clean_num <- data_clean
-data_clean_num$Biopsy <- as.numeric(data_clean_num$Biopsy)
-
-# Feed into our heatmap function
-heatmap <- create_heatmap(data_clean_num)
-
-# Display the heatmap
-print(heatmap)
-```
-
-
 # Data Cleaning
 
 ```{r}
-library(caret)
-
-# remove near zero variance variables
-
+# Remove near zero variance variables
 dim(cervical_data_clean)
 degeneratecols <- nearZeroVar(cervical_data_clean)
 
@@ -104,29 +79,88 @@ cervical_data_process <- cervical_data_clean[, -degeneratecols]
 dim(cervical_data_process)
 
 # impute missing values with knn
-data_clean <- impute_with_knn(cervical_data_process, k = 10)
+#data_clean <- impute_with_knn(cervical_data_process, k = 10)
 
 # since knn imputation create new columns, we will exclude the new columns from our dataset
-data_clean <- subset(data_clean, select = Age:Biopsy)
+#data_clean <- subset(data_clean, select = Age:Biopsy)
+
+preproc <- preProcess(cervical_data_process, method = c("center", "scale", "knnImpute"))
+data_clean <- predict(preproc, cervical_data_process)
 
 null_counts_clean <- check_nulls(data_clean)
 
-
+data_clean
 ```
 
+# EDA - Correlations Analysis
+```{r}
+# convert factor to numeric
+data_clean_num <- data_clean
+data_clean_num$Biopsy <- as.numeric(data_clean_num$Biopsy)
 
-## Convert the class to factor variable
+# Feed into our heatmap function
+title = "Correlation Heatmap of Cervical Cancer Biopsy Dataset"
+heatmap <- create_heatmap(title, data_clean_num)
 
+# Display the heatmap
+print(heatmap)
+```
+
+## Imbalaced dataset
 
 ```{r}
 # initial look at the target variable
 data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
-levels(data_clean$Biopsy) <- c("No", "Yes") # names of factors
+levels(data_clean$Biopsy) <- c(0, 1) # names of factors
+summary(data_clean$Biopsy)
+```
 
+```{r}
+# plotting number of samples in each class - original dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
+```
+
+### SMOTE 
+
+```{r}
+# performing ROSE
+data_clean <- ROSE(Biopsy ~., data = data_clean, seed = 1)$data
+data_clean
+```
+
+```{r}
+# plotting number of samples in each class - balanced dataset
+options(scipen=10000) 
+
+ggplot(data = data_clean, aes(fill = Biopsy)) +
+    geom_bar(aes(x = Biopsy))+
+    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    xlab("")+
+    ylab("Samples")+
+    scale_y_continuous(expand = c(0,0))+
+    scale_x_discrete(expand = c(0,0))+
+    theme(legend.position = "none", 
+         legend.title = element_blank(),
+         panel.grid.major = element_blank(),
+         panel.grid.minor = element_blank(),
+         panel.background = element_blank())
 ```
 
 
-# Data Partitioning (Train and Test Split)
+# Creating Train and Test Split
 
 ```{r}
 # data splitting
@@ -142,108 +176,40 @@ train_y <- trainData$Biopsy
 test_X <- testData[ , !(names(testData) %in% "Biopsy")]
 test_y <- testData$Biopsy
 
-
-############################################### Imbalance class 
-
-# plotting number of samples in each class - original dataset
-options(scipen=10000)
-
-train_y_df <- data.frame(Biopsy = train_y)
-
-# Create the plot
-p <- ggplot(data = train_y_df, aes(x = Biopsy, fill = Biopsy)) +
-    geom_bar() +
-    geom_text(stat='count', aes(label=..count..), vjust=1) +
-    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
-    xlab("") +
-    ylab("Samples") +
-    scale_y_continuous(expand = c(0,0)) +
-    scale_x_discrete(expand = c(0,0)) +
-    theme(legend.position = "none", 
-         legend.title = element_blank(),
-         panel.grid.major = element_blank(),
-         panel.grid.minor = element_blank(),
-         panel.background = element_blank())
-p 
-ggsave(filename = "class_imbalance1.png", plot = p, width = 7, height = 7)
-
-```
-## Class Imbalanace (ROSE)
-
-```{r}
-
-
-#Implementing ROSE function to handle class imbalance problem
-
-library(ROSE)
-
-set.seed(100)
-
-rose_train <- ROSE(Biopsy ~ ., data = trainData)$data
-
-train_X <- rose_train[ , !(names(rose_train) %in% "Biopsy")]
-train_y <- rose_train$Biopsy
-
-
-
-options(scipen=10000) 
-
-train_y_df <- data.frame(Biopsy = train_y)
-
-p1 <- ggplot(data = train_y_df, aes(x = Biopsy,fill = Biopsy)) +
-    geom_bar()+
-    geom_text(stat='count', aes(label=..count..), vjust=1) +
-    ggtitle("Number of samples in each class after ROSE technique implementation", subtitle = "Original dataset") +
-    xlab("")+
-    ylab("Samples")+
-    scale_y_continuous(expand = c(0,0))+
-    scale_x_discrete(expand = c(0,0))+
-    theme(legend.position = "none", 
-         legend.title = element_blank(),
-         panel.grid.major = element_blank(),
-         panel.grid.minor = element_blank(),
-         panel.background = element_blank())
-p1
-
-ggsave(filename = "class_imbalance2.png", plot = p1, width = 7, height = 4)
-
+# target variable is indeed binary and we want to perform a classification task, we would need to convert your target variable to a factor
+train_y = as.factor(train_y)
+test_y = as.factor(test_y)
 ```
 
 ## Data Pre-Processing
 
 ```{r}
-preProcValues <- preProcess(train_X, 
-                            method = c("center", "scale"))
+preprocessed_data <- preprocess_data(train_X, test_X)
 
-train_X <- predict(preProcValues, train_X)
-test_X <- predict(preProcValues, test_X)
+dim(train_X)
+dim(test_X)
 
-
-cntrl <- trainControl(method = "cv", number = 10,
-                     summaryFunction = twoClassSummary,
-                     classProbs = TRUE,
-                     savePredictions = TRUE)
-
+cntrl <- trainControl(method = "cv", number = 10)
 ```
 
 # Modeling 
 
 ## Non-Linear models
 
+
 ### Neural Network Model
 
 ```{r}
 ### Neural Network Model
 nnet_model <- train_nnet_model(train_X, train_y, ncol(trainData), cntrl)
+nnet_model
 ```
 
 
 ```{r}
 # get prediction result
 testResults_nnet <- get_prediction_results(nnet_model, test_X, test_y)
-
-# convert prediction levels to match observation
-testResults_nnet$prediction <- ifelse(testResults_nnet$prediction == "1", "Yes", "No")
+testResults_nnet
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_nnet$prediction), as.factor(testResults_nnet$observation))
@@ -258,7 +224,6 @@ nnet_model$finalModel
 roc_nnet <- roc(testResults_nnet$observation, testResults_nnet$class_prob)
 auc(roc_nnet)
 plot(roc_nnet)
-
 ```
 
 ### Multivariate Adaptive Regression Splines (MARS)
@@ -268,13 +233,10 @@ mars_model <- train_mars_model(train_X, train_y, 2:20, cntrl)
 mars_model
 ```
 
-
 ```{r}
 # get prediction result
 testResults_mars <- get_prediction_results(mars_model, test_X, test_y)
-
-# convert prediction levels to match observation
-testResults_mars$prediction <- ifelse(testResults_mars$prediction == "1", "Yes", "No")
+testResults_mars
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_mars$prediction), as.factor(testResults_mars$observation))
@@ -290,7 +252,6 @@ roc_mars <- roc(testResults_mars$observation, testResults_mars$class_prob)
 auc(roc_mars)
 plot(roc_mars)
 ```
-
 ### Support Vector Machine (SVM) 
 
 #### svmRadial
@@ -303,9 +264,7 @@ svm_model
 ```{r}
 # get prediction result
 testResults_svm <- get_prediction_results(svm_model, test_X, test_y)
-
-# convert prediction levels to match observation
-testResults_svm$prediction <- ifelse(testResults_svm$prediction == "1", "Yes", "No")
+testResults_svm
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_svm$prediction), as.factor(testResults_svm$observation))
@@ -320,9 +279,7 @@ svm_model$finalModel
 roc_svm <- roc(testResults_svm$observation, testResults_svm$class_prob)
 auc(roc_svm)
 plot(roc_svm)
-
 ```
-
 #### svmPoly
 
 ```{r}
@@ -334,13 +291,7 @@ svm_modelPoly
 ```{r}
 # get prediction result
 testResults_svmP <- get_prediction_results(svm_modelPoly, test_X, test_y)
-
-
-# convert prediction levels to match observation
-testResults_svmP$prediction <- ifelse(testResults_svmP$prediction == "1", "Yes", "No")
-
 testResults_svmP
-
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_svmP$prediction), as.factor(testResults_svmP$observation))
@@ -361,19 +312,12 @@ plot(roc_svmp)
 ```{r}
 knn_model <- knn_model_train(train_X, train_y, cntrl, 1:11)
 knn_model
-
 ```
 
 ```{r}
 # get prediction result
 testResults_knn <- get_prediction_results(knn_model, test_X, test_y)
-
-
-# convert prediction levels to match observation
-testResults_knn$prediction <- ifelse(testResults_knn$prediction == "1", "Yes", "No")
-
 testResults_knn
-
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_knn$prediction), as.factor(testResults_knn$observation))
@@ -391,21 +335,17 @@ plot(roc_knn)
 ```
 
 ### Random Forest Model
-
 ```{r}
 # Train model
 rf_model <- rf_model_train(train_X, train_y, cntrl)
-
+rf_model
 ```
 
-
 ```{r}
+# Test model
 # get prediction result
 testResults_rf <- get_prediction_results(rf_model, test_X, test_y)
 testResults_rf
-
-# convert prediction levels to match observation
-testResults_rf$prediction <- ifelse(testResults_rf$prediction == "1", "Yes", "No")
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_rf$prediction), as.factor(testResults_rf$observation))
@@ -421,35 +361,107 @@ roc_rf <- roc(testResults_rf$observation, testResults_rf$class_prob)
 auc(roc_rf)
 plot(roc_rf)
 ```
-
-## Linear Model
-
-### Logistic Regression
+## Linear Models
 
 ```{r}
-lr_model <- lr_model_train(train_X, train_y, cntrl)
+# Rename factor names in line with valid R variable naming for linear models to work
+train_y_renam <- train_y
+levels(train_y_renam) <- c("level0", "level1")
+```
+
+
+### Logistic Regression Model
+```{r}
+# build new control
+ctrl <- trainControl(method = "cv",
+                      summaryFunction = twoClassSummary,
+                      classProbs = TRUE,
+                      savePredictions = TRUE)
+
+lr_model <- lr_model_train(train_X, train_y_renam, ctrl)
 lr_model
 ```
 
 ```{r}
+# Test new model
 # get prediction result
 testResults_lr <- get_prediction_results(lr_model, test_X, test_y)
-
-
-# convert prediction levels to match observation
-testResults_lr$prediction <- ifelse(testResults_lr$prediction == "1", "Yes", "No")
 testResults_lr
-
 
 # confusion matrix
 cm <- confusionMatrix(as.factor(testResults_lr$prediction), as.factor(testResults_lr$observation))
 print(cm)
 
 # roc/auc result
+roc_rf <- roc(testResults_lr$observation, testResults_lr$class_prob)
+auc(roc_rf)
+plot(roc_rf)
+```
 
-roc_lr <- roc(testResults_lr$observation, testResults_lr$class_prob)
-auc(roc_lr)
-plot(roc_lr)
+### LDA Model
+```{r}
+lda_model <- lda_model_train(train_X, train_y_renam, ctrl)
+lda_model
+```
+
+```{r}
+# Test new model
+# get prediction result
+testResults_lda <- get_prediction_results(lda_model, test_X, test_y)
+testResults_lda
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_lda$prediction), as.factor(testResults_lda$observation))
+print(cm)
+
+# roc/auc result
+roc_lda <- roc(testResults_lda$observation, testResults_lda$class_prob)
+auc(roc_lda)
+plot(roc_lda)
+```
+
+### Penalized Logistic Regression
+```{r}
+glmn_model <- glmn_model_train(train_X, train_y_renam, ctrl)
+glmn_model
+```
+
+```{r}
+# Test new model
+# get prediction result
+testResults_glmn <- get_prediction_results(glmn_model, test_X, test_y)
+testResults_glmn
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_glmn$prediction), as.factor(testResults_glmn$observation))
+print(cm)
+
+# roc/auc result
+roc_glmn <- roc(testResults_glmn$observation, testResults_glmn$class_prob)
+auc(roc_glmn)
+plot(roc_glmn)
+```
+
+### Nearest Shrunken Centroids
+```{r}
+nsc_model <- nsc_model_train(train_X, train_y_renam, ctrl)
+nsc_model
+```
+
+```{r}
+# Test new model
+# get prediction result
+testResults_nsc <- get_prediction_results(nsc_model, test_X, test_y)
+testResults_nsc
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_nsc$prediction), as.factor(testResults_nsc$observation))
+print(cm)
+
+# roc/auc result
+roc_nsc <- roc(testResults_nsc$observation, testResults_nsc$class_prob)
+auc(roc_nsc)
+plot(roc_nsc)
 ```
 
 
@@ -466,12 +478,14 @@ plot(roc_svm, type = "s", add = TRUE, col = 'blue', legacy.axes = TRUE)
 plot(roc_svmp, type = "s", add = TRUE, col = 'brown', legacy.axes = TRUE)
 plot(roc_knn, type = "s", add = TRUE, col = 'yellow', legacy.axes = TRUE)
 plot(roc_rf, type = "s", add = TRUE, col = 'orange', legacy.axes = TRUE)
-plot(roc_lr, type = "s", add = TRUE, legacy.axes = TRUE)
+plot(roc_lr, type = "s", add = TRUE, col='purple', legacy.axes = TRUE)
+plot(roc_lda, type = "s", add = TRUE, col='grey', legacy.axes = TRUE)
+plot(roc_glmn, type = "s", add = TRUE, col='peach', legacy.axes = TRUE)
+plot(roc_nsc, type = "s", add = TRUE, legacy.axes = TRUE)
 
 
-legend("bottomright", legend=c("Neural Network", "Multivariate Adaptive Regression Splines (MARS)", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)","K-Nearest Neighbor", "Random Forest", "Logistic Regression (Linear model)"),
-       
-       col=c("red", "green","blue", "brown", "yellow", "orange", "black" ), lwd=2)
+legend("bottomright", legend=c("Neural Network", "Multivariate Adaptive Regression Splines (MARS)", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)","K-Nearest Neighbor", "Random Forest", "Logistic Regression", "Linear Discriminant Analysis", "Penalized Logistic Regression", "Nearest Shrunken Centroids"), 
+       col=c("red", "green","blue", "brown", "yellow", "orange", "purple","grey","peach","black"), lwd=2)
 
 title(main = "Compare ROC curves from different models", outer = TRUE)
 ```
@@ -488,7 +502,9 @@ svmpAuc <- auc(roc_svmp)
 knnAuc <- auc(roc_knn)
 rfAuc <- auc(roc_rf)
 lrAuc <- auc(roc_lr)
-
+ldaAuc <- auc(roc_lda)
+glmnAuc <- auc(roc_glmn)
+nscAuc <- auc(roc_nsc)
 
 # accuracy result
 nnetAcc <- get_accuracy(nnet_model, test_X, test_y)
@@ -498,14 +514,18 @@ svmpAcc <- get_accuracy(svm_modelPoly, test_X, test_y)
 knnAcc <- get_accuracy(knn_model, test_X, test_y)
 rfAcc <- get_accuracy(rf_model, test_X, test_y)
 lrAcc <- get_accuracy(lr_model, test_X, test_y)
+ldaAcc <- get_accuracy(lda_model, test_X, test_y)
+glmnAcc <- get_accuracy(glmn_model, test_X, test_y)
+nscAcc <- get_accuracy(nsc_model, test_X, test_y)
 
 
 auc_df <- data.frame(
   Model = c("Neural Network", "MARS", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)",
-                               "K-Nearest Neighbor", "Random Forest", "Logistic Regression"),
+                               "K-Nearest Neighbor", "Random Forest", "Logistic Regression", "Linear Discriminant Analysis",
+                                "Penalized Logistic Regression", "Nearest Shrunken Centroids"),
   
-  AUC = c(nnetAuc, marsAuc, svmAuc, svmpAuc, knnAuc, rfAuc, lrAuc), 
-  Accuracy = c(nnetAcc, marsAcc, svmAcc, svmpAcc, knnAcc, rfAcc, lrAcc)
+  AUC = c(nnetAuc, marsAuc, svmAuc, svmpAuc, knnAuc, rfAuc, lrAuc, ldaAuc, glmnAuc, nscAuc), 
+  Accuracy = c(nnetAcc, marsAcc, svmAcc, svmpAcc, knnAcc, rfAcc, lrAcc, ldaAcc, glmnAcc, nscAcc)
 )
 
 print(auc_df)
@@ -524,4 +544,9 @@ plot(varImp(rf_model, scale = FALSE), top = 10,
      main = "Important Factors for Predicting Cancer using Random Forest")
 
 ```
+
+
+
+
+
 
