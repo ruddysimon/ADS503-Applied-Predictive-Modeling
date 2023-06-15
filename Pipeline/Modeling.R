@@ -89,7 +89,6 @@ rf_model_train <- function(train_X, train_y, cntrl) {
 #################################################Logistic Regression Model
 lr_model_train <- function(train_X, train_y, cntrl) {
   
-  
   # Train new model
   lrFit <- train(x = train_X, 
                  y = train_y,
@@ -101,6 +100,48 @@ lr_model_train <- function(train_X, train_y, cntrl) {
   return(lrFit)
 }
 
+##################################################LDA Model
+lda_model_train <- function(train_X, train_y, cntrl) {
+  
+  ldaFit <- train(x = train_X, 
+                  y = train_y,
+                  method = "lda",
+                  preProc = c("center","scale"),
+                  metric = "ROC",
+                  trControl = ctrl)
+  return(ldaFit)
+  
+}
+
+#######################################Penalized Logistic Regression Model
+glmn_model_train <- function(train_X, train_y, cntrl) {
+  
+  glmnGrid <- expand.grid(alpha = c(0,  .1,  .2, .4, .6, .8, 1),
+                          lambda = seq(.01, .2, length = 10))
+  
+  glmnFit <- train(x = train_X, 
+                   y = train_y,
+                   method = "glmnet",
+                   tuneGrid = glmnGrid,
+                   metric = "ROC",
+                   trControl = ctrl)
+  return(glmnFit)
+
+}
+
+##########################################Nearest Shrunken Centroids Model
+nsc_model_train <- function(train_X, train_y, cntrl) {
+  
+  nscFit <- train(x = train_X, 
+                  y = train_y,
+                  method = "pam",
+                  tuneGrid = data.frame(threshold = seq(0, 25, length = 30)),
+                  metric = "ROC",
+                  trControl = ctrl)
+  
+  return(nscFit)
+  
+}
 
 
 # Prediction Results Function
