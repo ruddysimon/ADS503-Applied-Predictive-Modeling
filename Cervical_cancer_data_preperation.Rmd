@@ -78,13 +78,7 @@ length(degeneratecols) # number of cols that are degenerate distributions
 cervical_data_process <- cervical_data_clean[, -degeneratecols]
 dim(cervical_data_process)
 
-# impute missing values with knn
-#data_clean <- impute_with_knn(cervical_data_process, k = 10)
-
-# since knn imputation create new columns, we will exclude the new columns from our dataset
-#data_clean <- subset(data_clean, select = Age:Biopsy)
-
-preproc <- preProcess(cervical_data_process, method = c("center", "scale", "knnImpute"))
+preproc <- preProcess(cervical_data_process, method = ("knnImpute"))
 data_clean <- predict(preproc, cervical_data_process)
 
 null_counts_clean <- check_nulls(data_clean)
@@ -147,7 +141,7 @@ options(scipen=10000)
 
 ggplot(data = data_clean, aes(fill = Biopsy)) +
     geom_bar(aes(x = Biopsy))+
-    ggtitle("Number of samples in each class", subtitle = "Original dataset") +
+    ggtitle("Number of samples in each class", subtitle = "Balanced dataset") +
     xlab("")+
     ylab("Samples")+
     scale_y_continuous(expand = c(0,0))+
@@ -541,11 +535,43 @@ print(best_model)
 
 ```{r}
 plot(varImp(rf_model, scale = FALSE), top = 10,
-     main = "Important Factors for Predicting Cancer using Random Forest")
+     main = "Important Factors for Predicting Cervical Cancer Biopsies using Random Forest")
 
 ```
 
+## Recursive Feature Elimination for Best Model (Penalized Logistic Regression)
+```{r}
+# use caret package & user-defined-function in Modeling.R to do recursive feature elimination
+train_y_num <- as.numeric(train_y)
+optimal_glm_features <- linear_rfe(train_X, train_y_num)
+print(optimal_glm_features)
+```
 
+
+```{r}
+# Retrain penalized LR with optimal features - 12 out of 15
+train_X_rfe <- train_X[, optimal_glm_features]
+
+glmn_model_rfe <- glmn_model_train(train_X_rfe, train_y_renam, ctrl)
+glmn_model_rfe
+```
+
+```{r}
+# Test new model
+test_X_rfe <- test_X[, optimal_glm_features]
+# get prediction result
+testResults_glmn_rfe <- get_prediction_results(glmn_model_rfe, test_X_rfe, test_y)
+testResults_glmn_rfe
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_glmn_rfe$prediction), as.factor(testResults_glmn_rfe$observation))
+print(cm)
+
+# roc/auc result
+roc_glmn_rfe <- roc(testResults_glmn_rfe$observation, testResults_glmn_rfe$class_prob)
+auc(roc_glmn_rfe)
+plot(roc_glmn_rfe)
+```
 
 
 
