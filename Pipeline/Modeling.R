@@ -167,4 +167,25 @@ get_accuracy <- function(model, test_X, test_y) {
   return(acc)
 }
 
+###############################################Recursive Feature Elimination
+linear_rfe <- function(train_X, train_y) {
+  
+  set.seed(100)
+  
+  control <- rfeControl(functions = lmFuncs,   
+                        method = "cv",         
+                        number = 5,            
+                        verbose = FALSE)
+  
+  # Perform RFE
+  rfe_result <- rfe(train_X, train_y,       
+                    sizes = c(1:ncol(train_X)),    
+                    rfeControl = control)           
+  
+  # Access the selected features
+  selected_features <- predictors(rfe_result)
+  return(selected_features)
+  
+}
+
 
