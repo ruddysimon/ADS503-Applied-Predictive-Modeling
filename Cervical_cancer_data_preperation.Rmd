@@ -534,8 +534,8 @@ print(best_model)
 ## Checking the important variables of the optimal model 
 
 ```{r}
-plot(varImp(rf_model, scale = FALSE), top = 10,
-     main = "Important Factors for Predicting Cervical Cancer Biopsies using Random Forest")
+plot(varImp(glmn_model, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cervical Cancer \nBiopsies using Penalized Logistic Regression")
 
 ```
 
@@ -573,6 +573,11 @@ auc(roc_glmn_rfe)
 plot(roc_glmn_rfe)
 ```
 
+```{r}
+# var importance of final glmnet model
+plot(varImp(glmn_model_rfe, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cervical Cancer \nBiopsies using Penalized Logistic Regression")
 
+```
 
 
