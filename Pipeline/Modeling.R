@@ -1,3 +1,4 @@
+
 ############################################### Neural Network Training Function
 train_nnet_model <- function(train_X, train_y, ncol_train, cntrl) {
   nnetGrid <- expand.grid(decay = c(0, 0.01, .1), size = c(3, 7, 11, 13))
@@ -101,12 +102,52 @@ lr_model_train <- function(train_X, train_y, cntrl) {
   return(lrFit)
 }
 
+##################################################LDA Model
+lda_model_train <- function(train_X, train_y, cntrl) {
+  
+  ldaFit <- train(x = train_X, 
+                  y = train_y,
+                  method = "lda",
+                  preProc = c("center","scale"),
+                  metric = "ROC",
+                  trControl = cntrl)
+  return(ldaFit)
+  
+}
+
+#######################################Penalized Logistic Regression Model
+glmn_model_train <- function(train_X, train_y, cntrl) {
+  
+  glmnGrid <- expand.grid(alpha = c(0,  .1,  .2, .4, .6, .8, 1),
+                          lambda = seq(.01, .2, length = 10))
+  
+  glmnFit <- train(x = train_X, 
+                   y = train_y,
+                   method = "glmnet",
+                   tuneGrid = glmnGrid,
+                   metric = "ROC",
+                   trControl = cntrl)
+  return(glmnFit)
+  
+}
+
+##########################################Nearest Shrunken Centroids Model
+nsc_model_train <- function(train_X, train_y, cntrl) {
+  
+  nscFit <- train(x = train_X, 
+                  y = train_y,
+                  method = "pam",
+                  tuneGrid = data.frame(threshold = seq(0, 25, length = 30)),
+                  metric = "ROC",
+                  trControl = cntrl)
+  
+  return(nscFit)
+  
+}
 
 
-# Prediction Results Function
 
 ##########################################Prediction Results Function
-
 get_prediction_results<- function(model, test_X, test_y) {
   prediction <- predict(model, test_X, type = "prob")
   prediction_class <- ifelse(prediction[,2] > 0.5, 1, 0) 
@@ -119,7 +160,7 @@ get_prediction_results<- function(model, test_X, test_y) {
 }
 
 
-# Function to calculate accuracy
+##########################################Function to calculate accuracy
 get_accuracy <- function(model, test_X, test_y) {
   pred <- predict(model, newdata = test_X)
   acc <- postResample(pred, test_y)["Accuracy"]
