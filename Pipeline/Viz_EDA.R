@@ -43,15 +43,18 @@ create_scatterplot <- function(df, x_var, y_var, color_var, x_label, y_label, ti
 }
 
 
+
+
 ########################################################## Heatmap of correlations
 
-create_heatmap <- function(data_clean_num) {
-  cor_mat <- cor(data_clean_num)
+create_heatmap <- function(title, df) {
+  cor_mat <- cor(df)
   cor_data <- reshape2::melt(cor_mat)
   
   # Create the heatmap using ggplot2
   heatmap <- ggplot(cor_data, aes(x = Var1, y = Var2, fill = value)) +
     geom_tile() +
+    labs(title = title) + 
     scale_fill_gradient2(low = "blue", mid = "white", high = "red",
                          midpoint = 0, limits = c(-1, 1)) +
     theme_minimal() +
@@ -59,3 +62,5 @@ create_heatmap <- function(data_clean_num) {
   
   return(heatmap)
 }
+
+
