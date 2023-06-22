@@ -130,7 +130,7 @@ data_clean
 ```{r}
 # initial look at the target variable
 data_clean$Biopsy<-as.factor(data_clean$Biopsy) # convert class to factor
-levels(data_clean$Biopsy) <- c("No", "Yes") # names of factors
+levels(data_clean$Biopsy) <- c("No", "Yes") # names of the factors
 
 ```
 
