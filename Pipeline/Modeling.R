@@ -105,6 +105,7 @@ lda_model_train <- function(train_X, train_y, cntrl) {
   
   set.seed(100)
   
+
   ldaFit <- train(x = train_X, 
                   y = train_y,
                   method = "lda",
@@ -118,6 +119,7 @@ lda_model_train <- function(train_X, train_y, cntrl) {
 #######################################Penalized Logistic Regression Model
 glmn_model_train <- function(train_X, train_y, cntrl) {
   
+
   set.seed(100)
   
   glmnGrid <- expand.grid(alpha = c(0,  .1,  .2, .4, .6, .8, 1),
@@ -138,6 +140,7 @@ nsc_model_train <- function(train_X, train_y, cntrl) {
   
   set.seed(100)
   
+
   nscFit <- train(x = train_X, 
                   y = train_y,
                   method = "pam",
