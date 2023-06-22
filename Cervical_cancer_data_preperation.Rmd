@@ -20,13 +20,10 @@ library(ROSE)
 ```{r}
 suppressWarnings({
 
-# setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
+setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though
   
 
-setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory     (Ruddy/loc/path)
-  
-# setwd("/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj")   #choose a location/path and set the working directory - will only set for this chunk though     (Shailja/loc/path)source ("Data_Ingestion.R")
-  
+#setwd("/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/Pipeline")   #choose a location/path and set the working directory     (Ruddy/loc/path)
 
 source ("Data_Ingestion.R")
 source ("Viz_EDA.R")
@@ -43,7 +40,8 @@ source ("Modeling.R")
 set.seed(007)
 
 # loading Data
-cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
+#cervical_data_raw <- read_data(x="/Users/ruddysimonpour/Desktop/University of Sandiego - Curriculum/ADS 503 - Applied Predictive Modeling/ADS503-Applied-Predictive-Modeling/input_resource/kag_risk_factors_cervical_cancer.csv")
+cervical_data_raw <- read_data(x='/Users/shailjasomani/Documents/USD_MS_ADS/ADS_503/Final_Proj/kag_risk_factors_cervical_cancer.csv')
 head(cervical_data_raw,5)
 
 dim(cervical_data_raw)
@@ -87,7 +85,9 @@ cervical_data_process <- cervical_data_clean[, -degeneratecols]
 dim(cervical_data_process)
 
 # impute missing values with knn
-data_clean <- impute_with_knn(cervical_data_process, k = 29) # the rule of thumbs choosing the k is the square root of the number of samples
+#data_clean <- impute_with_knn(cervical_data_process, k = 29) # the rule of thumbs choosing the k is the square root of the number of samples
+preproc <- preProcess(cervical_data_process, method = ("knnImpute"))
+data_clean <- predict(preproc, cervical_data_process)
 
 # since knn imputation create new columns, we will exclude the new columns from our dataset
 data_clean <- subset(data_clean, select = Age:Biopsy)
@@ -103,7 +103,7 @@ null_counts_clean <- check_nulls(data_clean)
 data_clean$Biopsy <- as.numeric(data_clean$Biopsy)
 
 # Feed into our heatmap function
-heatmap <- create_heatmap(data_clean)
+heatmap <- create_heatmap("Cervical Cancer Dataset Variable Correlations", data_clean)
 
 # Display the heatmap
 print(heatmap)
@@ -117,7 +117,7 @@ highlyCorrelated <- findCorrelation(cor(data_clean), cutoff = 0.9)
 
 print(names(data_clean)[highlyCorrelated])
 
-correlationMatrix[highlyCorrelated, highlyCorrelated]
+#correlationMatrix[highlyCorrelated, highlyCorrelated]
 
 # drop highly correlated variables
 data_clean <- data_clean[, -highlyCorrelated]
@@ -137,7 +137,7 @@ levels(data_clean$Biopsy) <- c("No", "Yes") # names of factors
 
 # Data Partitioning (Train and Test Split)
 
-```{r}
+```{r, warning=FALSE}
 # data splitting
 set.seed(100)
 
@@ -241,9 +241,10 @@ cntrl <- trainControl(method = "cv", number = 10,
 
 ### Neural Network Model
 
-```{r}
+```{r, warning=FALSE}
 ### Neural Network Model
 nnet_model <- train_nnet_model(train_X, train_y, ncol(trainData), cntrl)
+nnet_model
 ```
 
 
@@ -272,7 +273,7 @@ plot(roc_nnet)
 
 ### Multivariate Adaptive Regression Splines (MARS)
 
-```{r}
+```{r, warning=FALSE}
 mars_model <- train_mars_model(train_X, train_y, 2:20, cntrl)
 mars_model
 ```
@@ -304,7 +305,7 @@ plot(roc_mars)
 
 #### svmRadial
 
-```{r}
+```{r, warning=FALSE}
 svm_model <- train_svm_model(train_X, train_y, 20, cntrl)
 svm_model
 ```
@@ -334,7 +335,7 @@ plot(roc_svm)
 
 #### svmPoly
 
-```{r}
+```{r, warning=FALSE}
 svm_modelPoly <- train_svm_poly(train_X, train_y, cntrl)
 svm_modelPoly
 ```
@@ -367,7 +368,7 @@ plot(roc_svmp)
 ```
 ### K-Nearest Neighbors
 
-```{r}
+```{r, warning=FALSE}
 knn_model <- knn_model_train(train_X, train_y, cntrl, 1:11)
 knn_model
 
@@ -401,10 +402,10 @@ plot(roc_knn)
 
 ### Random Forest Model
 
-```{r}
+```{r, warning=FALSE}
 # Train model
 rf_model <- rf_model_train(train_X, train_y, cntrl)
-
+rf_model
 ```
 
 
@@ -435,7 +436,7 @@ plot(roc_rf)
 
 ### Logistic Regression
 
-```{r}
+```{r, warning=FALSE}
 lr_model <- lr_model_train(train_X, train_y, cntrl)
 lr_model
 ```
@@ -533,7 +534,7 @@ auc(roc_nsc)
 plot(roc_nsc)
 ```
 
-# Judging model benchmark using ROC curve 
+# Final Model Evaluation & Enhancements
 
 
 ```{r}
@@ -554,10 +555,10 @@ plot(roc_glmn, type = "s", add = TRUE, col = 'darkgray', legacy.axes = TRUE)
 plot(roc_nsc, type = "s", add = TRUE, col = 'lightgray', legacy.axes = TRUE)
 
 # Update the legend to include the new models
-legend("bottomright", legend=c("Neural Network", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)", "K-Nearest Neighbor", "Random Forest", "Logistic Regression (Linear model)", "Linear Discriminant Analysis", "Penalized Logistic Regression", "Nearest Shrunken Centroids"),
-       col=c("red", "blue", "brown", "yellow", "orange", "black", "gray", "darkgray", "lightgray"), lwd=2)
+legend("bottomright", legend=c("Neural Network", "Support Vector Machine (svmRadial)", "Support Vector Machine (svmPoly)", "K-Nearest Neighbor", "Random Forest", "Logistic Regression", "Linear Discriminant Analysis", "Penalized Logistic Regression", "Nearest Shrunken Centroids"),
+       col=c("red", "blue", "brown", "yellow", "orange", "black", "gray", "purple", "pink"), lwd=2, bty = "n", xpd = TRUE)
 
-title(main = "Compare ROC curves from different models", outer = TRUE)
+title(main = "Compare ROC curves from Various Models")
 
 ```
 
@@ -613,8 +614,56 @@ print(best_model)
 ## Checking the important variables of the optimal model 
 
 ```{r}
-plot(varImp(mars_model, scale = FALSE), top = 10,
-     main = "Important Factors for Predicting Cancer using Random Forest")
+plot(varImp(rf_model, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cervical Cancer using Random Forest")
 
+```
+
+## Recursive Feature Elimination (RFE)
+```{r}
+# use caret package & user-defined-function in Modeling.R to do recursive feature elimination
+optimal_rf_features <- rf_rfe(train_X, train_y)
+print(optimal_rf_features)
+```
+
+
+```{r, warning=FALSE}
+# Retrain penalized LR with optimal features - 12 out of 15
+train_X_rfe <- train_X[, optimal_rf_features]
+
+rf_model_rfe <- rf_model_train(train_X_rfe, train_y, cntrl)
+rf_model_rfe
+```
+
+```{r}
+# Test new model
+test_X_rfe <- test_X[, optimal_rf_features]
+
+# get prediction result
+testResults_rf_rfe <- get_prediction_results(rf_model_rfe, test_X_rfe, test_y)
+testResults_rf_rfe$prediction <- ifelse(testResults_rf_rfe$prediction == "1", "Yes", "No")
+testResults_rf_rfe
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_rf_rfe$prediction), as.factor(testResults_rf_rfe$observation))
+print(cm)
+
+# roc/auc result
+roc_rf_rfe <- roc(testResults_rf_rfe$observation, testResults_rf_rfe$class_prob)
+auc(roc_rf_rfe)
+plot(roc_rf_rfe)
+```
+
+```{r}
+# var importance of final glmnet model
+plot(varImp(rf_model_rfe, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cervical Cancer\n using Penalized Random Forest")
+
+```
+
+## Threshold Investigation
+```{r}
+threshold_df <- thresholds_cm(testResults_rf_rfe)
+print(threshold_df)
 ```
 
