@@ -178,3 +178,64 @@ get_accuracy <- function(model, test_X, test_y) {
 }
 
 
+###############################################Recursive Feature Elimination
+rf_rfe <- function(train_X, train_y) {
+  
+  set.seed(100)
+  
+  control <- rfeControl(functions = rfFuncs,   
+                        method = "cv",         
+                        number = 5,            
+                        verbose = FALSE)
+  
+  # Perform RFE
+  rfe_result <- rfe(train_X, train_y,       
+                    sizes = c(1:ncol(train_X)),    
+                    rfeControl = control)           
+  
+  # Access the selected features
+  selected_features <- predictors(rfe_result)
+  return(selected_features)
+  
+}
+
+
+###############################################Threshold Tuning
+thresholds_cm <- function(results_df) {
+
+  # Create an empty data frame to store the results
+  threshold_df <- data.frame(Threshold = numeric(),
+                             TP = numeric(),
+                             FP = numeric(),
+                             TN = numeric(),
+                             FN = numeric(),
+                             stringsAsFactors = FALSE)
+  
+  # Set the threshold increments
+  threshold_increments <- seq(0.1, 0.9, by = 0.1)
+  
+  # Iterate over the threshold increments
+  for (threshold in threshold_increments) {
+    # Compute the confusion matrix using the given threshold
+    confusion_matrix <- table(results_df$observation,
+                              results_df$class_prob >= threshold)
+    
+    # Extract the TP, FP, TN, and FN from the confusion matrix 
+    # note: the AUC will not change based on the threshold, but the CM is useful from a business perspective
+    TP <- confusion_matrix[2, 2]
+    FP <- confusion_matrix[1, 2]
+    TN <- confusion_matrix[1, 1]
+    FN <- confusion_matrix[2, 1]
+    
+    # Append the results to the result data frame
+    threshold_df <- rbind(threshold_df, data.frame(Threshold = threshold,
+                                                   TP = TP,
+                                                   FP = FP,
+                                                   TN = TN,
+                                                   FN = FN))
+    
+  }
+  
+  return(threshold_df)
+  
+}
