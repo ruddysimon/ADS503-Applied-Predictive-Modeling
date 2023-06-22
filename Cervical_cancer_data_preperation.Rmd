@@ -534,7 +534,7 @@ auc(roc_nsc)
 plot(roc_nsc)
 ```
 
-# Judging model benchmark using ROC curve 
+# Final Model Evaluation & Enhancements
 
 
 ```{r}
@@ -614,8 +614,56 @@ print(best_model)
 ## Checking the important variables of the optimal model 
 
 ```{r}
-plot(varImp(mars_model, scale = FALSE), top = 10,
-     main = "Important Factors for Predicting Cancer using Random Forest")
+plot(varImp(rf_model, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cervical Cancer using Random Forest")
 
+```
+
+## Recursive Feature Elimination (RFE)
+```{r}
+# use caret package & user-defined-function in Modeling.R to do recursive feature elimination
+optimal_rf_features <- rf_rfe(train_X, train_y)
+print(optimal_rf_features)
+```
+
+
+```{r, warning=FALSE}
+# Retrain penalized LR with optimal features - 12 out of 15
+train_X_rfe <- train_X[, optimal_rf_features]
+
+rf_model_rfe <- rf_model_train(train_X_rfe, train_y, cntrl)
+rf_model_rfe
+```
+
+```{r}
+# Test new model
+test_X_rfe <- test_X[, optimal_rf_features]
+
+# get prediction result
+testResults_rf_rfe <- get_prediction_results(rf_model_rfe, test_X_rfe, test_y)
+testResults_rf_rfe$prediction <- ifelse(testResults_rf_rfe$prediction == "1", "Yes", "No")
+testResults_rf_rfe
+
+# confusion matrix
+cm <- confusionMatrix(as.factor(testResults_rf_rfe$prediction), as.factor(testResults_rf_rfe$observation))
+print(cm)
+
+# roc/auc result
+roc_rf_rfe <- roc(testResults_rf_rfe$observation, testResults_rf_rfe$class_prob)
+auc(roc_rf_rfe)
+plot(roc_rf_rfe)
+```
+
+```{r}
+# var importance of final glmnet model
+plot(varImp(rf_model_rfe, scale = FALSE), top = 10,
+     main = "Important Factors for Predicting Cervical Cancer\n using Penalized Random Forest")
+
+```
+
+## Threshold Investigation
+```{r}
+threshold_df <- thresholds_cm(testResults_rf_rfe)
+print(threshold_df)
 ```
 
