@@ -1,3 +1,4 @@
+
 ############################################### Neural Network Training Function
 train_nnet_model <- function(train_X, train_y, ncol_train, cntrl) {
   nnetGrid <- expand.grid(decay = c(0, 0.01, .1), size = c(3, 7, 11, 13))
@@ -70,9 +71,6 @@ knn_model_train <- function(train_X, train_y, cntrl, k_range) {
 ##############################################Random Forest (RF)
 rf_model_train <- function(train_X, train_y, cntrl) {
   
-  #mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)),
-       #                   ntree = c(100, 200, 300, 400, 500))
-
   mtryGrid <- data.frame(mtry = floor(seq(10, ncol(train_X)/3, length = 10)))
   
   set.seed(100)
@@ -89,6 +87,8 @@ rf_model_train <- function(train_X, train_y, cntrl) {
 #################################################Logistic Regression Model
 lr_model_train <- function(train_X, train_y, cntrl) {
   
+  set.seed(100)
+  
   # Train new model
   lrFit <- train(x = train_X, 
                  y = train_y,
@@ -103,18 +103,22 @@ lr_model_train <- function(train_X, train_y, cntrl) {
 ##################################################LDA Model
 lda_model_train <- function(train_X, train_y, cntrl) {
   
+  set.seed(100)
+  
   ldaFit <- train(x = train_X, 
                   y = train_y,
                   method = "lda",
                   preProc = c("center","scale"),
                   metric = "ROC",
-                  trControl = ctrl)
+                  trControl = cntrl)
   return(ldaFit)
   
 }
 
 #######################################Penalized Logistic Regression Model
 glmn_model_train <- function(train_X, train_y, cntrl) {
+  
+  set.seed(100)
   
   glmnGrid <- expand.grid(alpha = c(0,  .1,  .2, .4, .6, .8, 1),
                           lambda = seq(.01, .2, length = 10))
@@ -124,31 +128,34 @@ glmn_model_train <- function(train_X, train_y, cntrl) {
                    method = "glmnet",
                    tuneGrid = glmnGrid,
                    metric = "ROC",
-                   trControl = ctrl)
+                   trControl = cntrl)
   return(glmnFit)
-
+  
 }
 
 ##########################################Nearest Shrunken Centroids Model
 nsc_model_train <- function(train_X, train_y, cntrl) {
+  
+  set.seed(100)
   
   nscFit <- train(x = train_X, 
                   y = train_y,
                   method = "pam",
                   tuneGrid = data.frame(threshold = seq(0, 25, length = 30)),
                   metric = "ROC",
-                  trControl = ctrl)
+                  trControl = cntrl)
   
   return(nscFit)
   
 }
 
 
-# Prediction Results Function
 
 ##########################################Prediction Results Function
-
 get_prediction_results<- function(model, test_X, test_y) {
+  
+  set.seed(100)
+  
   prediction <- predict(model, test_X, type = "prob")
   prediction_class <- ifelse(prediction[,2] > 0.5, 1, 0) 
   results <- data.frame(
@@ -156,36 +163,18 @@ get_prediction_results<- function(model, test_X, test_y) {
     prediction = as.factor(prediction_class), 
     class_prob = prediction[,2] 
   )
+  
   return(results)
+  
 }
 
 
-# Function to calculate accuracy
+##########################################Function to calculate accuracy
 get_accuracy <- function(model, test_X, test_y) {
+  
   pred <- predict(model, newdata = test_X)
   acc <- postResample(pred, test_y)["Accuracy"]
   return(acc)
-}
-
-###############################################Recursive Feature Elimination
-linear_rfe <- function(train_X, train_y) {
-  
-  set.seed(100)
-  
-  control <- rfeControl(functions = lmFuncs,   
-                        method = "cv",         
-                        number = 5,            
-                        verbose = FALSE)
-  
-  # Perform RFE
-  rfe_result <- rfe(train_X, train_y,       
-                    sizes = c(1:ncol(train_X)),    
-                    rfeControl = control)           
-  
-  # Access the selected features
-  selected_features <- predictors(rfe_result)
-  return(selected_features)
-  
 }
 
 
