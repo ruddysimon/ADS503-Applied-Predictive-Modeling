@@ -615,7 +615,7 @@ print(best_model)
 
 ```{r}
 plot(varImp(rf_model, scale = FALSE), top = 10,
-     main = "Important Factors for Predicting Cervical Cancer using Random Forest")
+     main = "Important Factors for Predicting Cervical \nCancer using Random Forest")
 
 ```
 
@@ -657,13 +657,13 @@ plot(roc_rf_rfe)
 ```{r}
 # var importance of final glmnet model
 plot(varImp(rf_model_rfe, scale = FALSE), top = 10,
-     main = "Important Factors for Predicting Cervical Cancer\n using Penalized Random Forest")
+     main = "Important Factors for Predicting Cervical Cancer\n using Random Forest")
 
 ```
 
 ## Threshold Investigation
 ```{r}
-threshold_df <- thresholds_cm(testResults_rf_rfe)
+threshold_df <- thresholds_cm(testResults_rf)
 print(threshold_df)
 ```
 
