@@ -514,6 +514,8 @@ plot(roc_nsc)
 
 
 ```{r}
+png(filename = "roc_curve_comparison.png", width = 800, height = 600)
+
 ### Compare Models using ROC curve
 par(mar = c(9, 1, 0, 9))
 
