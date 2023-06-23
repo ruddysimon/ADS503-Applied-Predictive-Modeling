@@ -26,5 +26,20 @@ library(reshape2)
 library(ggplot2)
 library(caret)
 library(ROSE)
+```
 
+---
+
+## Project Tree
+```
+|- README.md \  
+|- Input Resources \   
+|-     |- kag_risk_factors_cervical_cancer.csv
+|- R Script \
+|-     |- Data_Ingestion.R 
+|-     |- Viz_EDA.R  
+|-     |- Preprocessing.R
+|-     |- Modeling.R
+|-            R Markdown \
+|-                 |- Cervical_cancer_data_preperation.Rmd
 ```
