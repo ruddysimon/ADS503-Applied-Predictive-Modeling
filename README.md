@@ -60,7 +60,7 @@ The data underwent preprocessing, which involved steps such as missing value imp
 
 Following preprocessing, feature selection methods were applied to determine the most relevant features contributing to cervical cancer diagnosis. This step was critical in reducing model complexity and enhancing model interpretability without compromising the predictive performance.
 
-The selected features were then fed into several supervised machine learning algorithms for model training. These algorithms included both linear (such as Linear Discriminant Analysis and Penalized Logistic Regression) and non-linear models (such as Random Forests, Support Vector Machines (SVM), and Neural Networks).
+The selected features were then fed into several supervised machine learning algorithms for model training. These algorithms included both linear (such as Linear Discriminant Analysis and Penalized Logistic Regression) and non-linear models (such as Random Forests, Support Vector Machines (SVM), and Neural Networks) and so on.
 
 We used an 80-20 split for our data: 80% was used for training our models, and the remaining 20% was reserved for validation. This approach ensured that our models were not overfitting the training data and could generalize well to unseen data.
 
