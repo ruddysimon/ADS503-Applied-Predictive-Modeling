@@ -90,3 +90,14 @@ Furthermore, to ensure the robustness and reliability of our findings, we used a
 
 **Logistic Regression (GLM):** Logistic regression is a statistical model that in its basic form uses a logistic function to model a binary dependent variable, although many more complex extensions exist. In regression analysis, logistic regression (or logit regression) is estimating the parameters of a logistic model; it is a form of binomial regression.</br>
 
+---
+
+## Result
+
+Among the different models tested, the Random Forest algorithm demonstrated superior performance, with an accuracy of 93%, sensitivity of 95%, specificity of 72%, and an AUC-ROC of 0.88. These results suggest a high diagnostic accuracy and precision of the Random Forest model in detecting cervical cancer. The most influential features identified were Schiller, STDs.vulvo.perineal.comdylomatosis, number of different STDs diagnosis, Number of pregnancies, number of sexual partners, and smoking status. This aligns well with established risk factors for cervical cancer.
+
+![ROC Curve](https://github.com/ruddysimon/ADS503-Applied-Predictive-Modeling/blob/main/Images/roc_curve_comparison.png "AUC-ROC curve comparing performance of different models")
+
+
+
+
