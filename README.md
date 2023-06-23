@@ -70,7 +70,7 @@ Furthermore, to ensure the robustness and reliability of our findings, we used a
 
 The following models have been used in this study for predicting cervical cancer:
 
-**Linear Discriminant Analysis (LDA):** Linear Discriminant Analysis is a method used in statistics, pattern recognition, and machine learning to find a linear combination of features that characterizes or separates two or more classes of objects or events.<br>
+**Linear Discriminant Analysis (LDA):** Linear Discriminant Analysis is a method used in statistics, pattern recognition, and machine learning to find a linear combination of features that characterizes or separates two or more classes of objects or events.</br>
 **Penalized Logistic Regression (glmnet):** Logistic regression, despite its name, is a linear model for classification rather than regression. Penalized Logistic Regression is a variation of logistic regression in which the logistic loss function is augmented with a penalty function to avoid overfitting and better manage multicollinearity.
 **Nearest Shrunken Centroids (PAMR):** Also known as Predictive Analysis for Microarrays (PAM), this method is used for high dimensional class prediction. It shrinks the class centroids towards the overall centroid for all classes, which can improve prediction accuracy.
 **Multivariate Adaptive Regression Splines (MARS):** MARS is a non-parametric regression method that models complex data by piecing together simpler, spline-based models.
